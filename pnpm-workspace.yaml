@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  esbuild: true
+  prisma: true
+  '@prisma/engines': true
+  '@nestjs/core': false
+  '@scarf/scarf': false
+  simple-git-hooks: true
+overrides:
+  vite: 7.1.7

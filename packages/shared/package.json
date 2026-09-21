@@ -1,0 +1,5 @@
+{
+  "name": "@forge/shared",
+  "private": true,
+  "type": "module"
+}

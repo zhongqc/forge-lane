@@ -1,0 +1,55 @@
+import 'reflect-metadata';
+import 'dotenv/config';
+import { Module, Controller, Get, Inject } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import express from 'express';
+import { DatabaseModule, Db } from './common/db.js';
+import { ApiExceptionFilter } from './common/errors.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { ProjectModule } from './modules/project/project.module.js';
+import { IssueModule } from './modules/issue/issue.module.js';
+import { SprintModule } from './modules/sprint/sprint.module.js';
+import { WorkspaceService } from './modules/workspace/workspace.service.js';
+import { WorkspaceController } from './modules/workspace/workspace.controller.js';
+import { BoardModule } from './modules/board/board.module.js';
+@Controller('api/health')
+class HealthController {
+  constructor(@Inject(Db) private db: Db) {}
+  @Get() async get() {
+    await this.db.client.$queryRaw`SELECT 1`;
+    return { status: 'ok' };
+  }
+}
+@Module({
+  controllers: [WorkspaceController, HealthController],
+  providers: [WorkspaceService],
+  imports: [DatabaseModule, AuthModule, ProjectModule, IssueModule, SprintModule, BoardModule],
+})
+class AppModule {}
+export async function createApp() {
+  const app = await NestFactory.create(AppModule, {
+    logger: process.env.NODE_ENV === 'test' ? false : ['error', 'warn'],
+  });
+  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(cookieParser());
+  app.use(express.json({ limit: '512kb' }));
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      const origin = req.headers.origin;
+      const allowed = process.env.APP_URL ?? 'http://localhost:5173';
+      if ((origin && origin !== allowed) || req.headers['sec-fetch-site'] === 'cross-site')
+        return res.status(403).json({ code: 'CSRF', message: '请求来源不被允许' });
+    }
+    next();
+  });
+  app.useGlobalFilters(new ApiExceptionFilter());
+  const document = SwaggerModule.createDocument(
+    app,
+    new DocumentBuilder().setTitle('Forge Lane API').setVersion('1.0').addCookieAuth('forge_session').build(),
+  );
+  SwaggerModule.setup('api/docs', app, document);
+  return app;
+}

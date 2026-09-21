@@ -1,0 +1,62 @@
+{
+  "name": "forge-lane",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "pnpm --filter @forge/web dev",
+    "dev:server": "tsx watch apps/server/src/main.ts",
+    "build": "pnpm --filter @forge/web build && pnpm --filter @forge/server build",
+    "typecheck": "tsc --noEmit && pnpm --filter @forge/web typecheck",
+    "lint": "oxlint --type-aware",
+    "test": "node --test tests/unit/*.test.ts",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx packages/db/src/seed.ts",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.3",
+    "@nestjs/core": "^12.0.3",
+    "@nestjs/platform-express": "^12.0.3",
+    "@nestjs/swagger": "^12.0.1",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "bcryptjs": "^3.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^18.0.1",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.2",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
+    "oxlint-tsgolint": "^7.0.2002",
+    "prisma": "7.10.0",
+    "simple-git-hooks": "^2.14.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.2",
+    "vitest": "3.2.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint && pnpm format:check && pnpm typecheck"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

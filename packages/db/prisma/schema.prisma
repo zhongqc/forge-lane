@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+  output = "../generated"
+}
+datasource db {
+  provider = "postgresql"
+}
+enum IssueType {
+  EPIC
+  STORY
+  TASK
+  BUG
+  SUBTASK
+}
+enum Priority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+enum ActorKind {
+  HUMAN
+  AGENT
+  SYSTEM
+}
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+enum StatusCategory {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  passwordHash String
+  actor Actor?
+  sessions Session[]
+  createdAt DateTime @default(now())
+}
+model Actor {
+  id String @id @default(uuid()) @db.Uuid
+  kind ActorKind @default(HUMAN)
+  name String
+  color String @default("#5b5bd6")
+  userId String? @unique @db.Uuid
+  user User? @relation(fields: [userId], references: [id])
+  active Boolean @default(true)
+  memberships WorkspaceMember[]
+  projects ProjectMember[]
+  assigned Issue[] @relation("Assignee")
+  reported Issue[] @relation("Reporter")
+  comments Comment[]
+  activities Activity[]
+  revisions DescriptionRevision[]
+}
+model Session {
+  id String @id
+  userId String @db.Uuid
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+model Workspace {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  slug String @unique
+  members WorkspaceMember[]
+  projects Project[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model WorkspaceMember {
+  workspaceId String @db.Uuid
+  actorId String @db.Uuid
+  role Role @default(MEMBER)
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  actor Actor @relation(fields:[actorId],references:[id])
+  @@id([workspaceId,actorId])
+}
+model Project {
+  id String @id @default(uuid()) @db.Uuid
+  workspaceId String @db.Uuid
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  key String @unique
+  name String
+  description String @default("")
+  issueCounter Int @default(0)
+  version Int @default(1)
+  members ProjectMember[]
+  issues Issue[]
+  statuses Status[]
+  columns BoardColumn[]
+  sprints Sprint[]
+  labels Label[]
+  activities Activity[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model ProjectMember {
+  projectId String @db.Uuid
+  actorId String @db.Uuid
+  role Role @default(MEMBER)
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  actor Actor @relation(fields:[actorId],references:[id])
+  @@id([projectId,actorId])
+}
+model Status {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  name String
+  category StatusCategory
+  sortOrder Int
+  mapping BoardColumnStatus?
+  issues Issue[]
+  @@unique([projectId,id])
+  @@unique([projectId,name])
+}
+model BoardColumn {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  name String
+  sortOrder Int
+  statuses BoardColumnStatus[]
+  @@unique([projectId,id])
+}
+model BoardColumnStatus {
+  projectId String @db.Uuid
+  columnId String @db.Uuid
+  statusId String @unique @db.Uuid
+  sortOrder Int
+  column BoardColumn @relation(fields:[projectId,columnId],references:[projectId,id],onDelete:Cascade)
+  status Status @relation(fields:[projectId,statusId],references:[projectId,id],onDelete:Cascade)
+  @@id([columnId,statusId])
+  @@unique([projectId,statusId])
+}
+model Sprint {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  name String
+  goal String @default("")
+  status SprintStatus @default(PLANNED)
+  startAt DateTime?
+  endAt DateTime?
+  version Int @default(1)
+  issues Issue[]
+  createdAt DateTime @default(now())
+  @@unique([projectId,id])
+}
+model Issue {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  number Int
+  type IssueType
+  title String
+  description String @default("") @db.Text
+  statusId String @db.Uuid
+  status Status @relation(fields:[projectId,statusId],references:[projectId,id])
+  priority Priority @default(MEDIUM)
+  assigneeId String? @db.Uuid
+  assignee Actor? @relation("Assignee",fields:[assigneeId],references:[id])
+  reporterId String @db.Uuid
+  reporter Actor @relation("Reporter",fields:[reporterId],references:[id])
+  epicId String? @db.Uuid
+  epic Issue? @relation("EpicChildren",fields:[projectId,epicId],references:[projectId,id])
+  epicChildren Issue[] @relation("EpicChildren")
+  parentId String? @db.Uuid
+  parent Issue? @relation("Subtasks",fields:[projectId,parentId],references:[projectId,id])
+  children Issue[] @relation("Subtasks")
+  sprintId String? @db.Uuid
+  sprint Sprint? @relation(fields:[projectId,sprintId],references:[projectId,id])
+  estimate Float?
+  boardOrder Decimal @default(1000) @db.Decimal(65,30)
+  backlogOrder Decimal @default(1000) @db.Decimal(65,30)
+  version Int @default(1)
+  labels IssueLabel[]
+  comments Comment[]
+  activities Activity[]
+  revisions DescriptionRevision[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([projectId,number])
+  @@unique([projectId,id])
+  @@index([projectId,sprintId,statusId,boardOrder])
+  @@index([projectId,sprintId,backlogOrder])
+  @@index([parentId])
+  @@index([epicId])
+}
+model Label {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  name String
+  color String @default("#737c8c")
+  issues IssueLabel[]
+  @@unique([projectId,name])
+  @@unique([projectId,id])
+}
+model IssueLabel {
+  projectId String @db.Uuid
+  issueId String @db.Uuid
+  labelId String @db.Uuid
+  issue Issue @relation(fields:[projectId,issueId],references:[projectId,id],onDelete:Cascade)
+  label Label @relation(fields:[projectId,labelId],references:[projectId,id],onDelete:Cascade)
+  @@id([issueId,labelId])
+}
+model Comment {
+  id String @id @default(uuid()) @db.Uuid
+  issueId String @db.Uuid
+  issue Issue @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  actorId String @db.Uuid
+  actor Actor @relation(fields:[actorId],references:[id])
+  content String @db.Text
+  version Int @default(1)
+  deletedAt DateTime?
+  revisions CommentRevision[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([issueId,createdAt])
+}
+model CommentRevision {
+  id String @id @default(uuid()) @db.Uuid
+  commentId String @db.Uuid
+  comment Comment @relation(fields:[commentId],references:[id],onDelete:Cascade)
+  content String @db.Text
+  version Int
+  createdAt DateTime @default(now())
+  @@unique([commentId,version])
+}
+model Activity {
+  id String @id @default(uuid()) @db.Uuid
+  workspaceId String @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  issueId String? @db.Uuid
+  issue Issue? @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  actorId String @db.Uuid
+  actor Actor @relation(fields:[actorId],references:[id])
+  actorNameSnapshot String
+  source String
+  type String
+  schemaVersion Int @default(1)
+  requestId String
+  issueVersion Int?
+  payload Json
+  occurredAt DateTime @default(now())
+  @@index([issueId,occurredAt,id])
+  @@index([projectId,occurredAt,id])
+}
+model DescriptionRevision {
+  id String @id @default(uuid()) @db.Uuid
+  issueId String @db.Uuid
+  issue Issue @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  version Int
+  markdown String @db.Text
+  actorId String @db.Uuid
+  actor Actor @relation(fields:[actorId],references:[id])
+  createdAt DateTime @default(now())
+  @@unique([issueId,version])
+}
+model IdempotencyRecord {
+  id String @id @default(uuid()) @db.Uuid
+  actorId String @db.Uuid
+  route String
+  key String
+  requestHash String
+  response Json
+  createdAt DateTime @default(now())
+  @@unique([actorId,route,key])
+  @@index([createdAt])
+}

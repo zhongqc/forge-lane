@@ -1,0 +1,24 @@
+import { test, expect } from '@playwright/test';
+test('create, edit, describe and move an issue without losing board context', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '创建工作区' }).click();
+  await page.getByLabel('你的姓名').fill('体验用户');
+  await page.getByLabel('邮箱').fill(`browser-${Date.now()}@forge.test`);
+  await page.getByLabel('密码', { exact: true }).fill('Strong-browser-password');
+  await page.getByRole('button', { name: '创建并开始使用' }).click();
+  await page.getByRole('button', { name: '创建项目', exact: true }).last().click();
+  await page.getByLabel('项目名称').fill('体验项目');
+  await page.getByLabel('项目标识').fill(`UX${Date.now().toString(36).toUpperCase()}`);
+  await page.getByRole('button', { name: '创建项目', exact: true }).last().click();
+  await page.getByRole('button', { name: '新建事项 C', exact: true }).click();
+  await page.getByPlaceholder('需要完成什么？').fill('体验编辑与拖拽');
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  await page.getByText('体验编辑与拖拽', { exact: true }).click();
+  await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+  await page.getByRole('button', { name: '编辑描述' }).click();
+  await page.locator('[contenteditable="true"]').fill('中文描述测试');
+  await page.getByRole('button', { name: '保存描述' }).click();
+  await expect(page.getByText('中文描述测试', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('中文描述测试', { exact: true })).toBeVisible();
+});

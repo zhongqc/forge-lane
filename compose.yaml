@@ -1,0 +1,39 @@
+name: forge-lane
+services:
+  app:
+    profiles: ['app']
+    build: .
+    environment:
+      DATABASE_URL: postgresql://forge:${POSTGRES_PASSWORD:-forge_local}@postgres:5432/forge
+      APP_URL: ${APP_URL:-http://localhost:3001}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports: ['127.0.0.1:3001:3001']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forge_local}
+      POSTGRES_DB: forge
+    ports: ['127.0.0.1:55432:5432']
+    volumes: ['postgres-data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U forge -d forge']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  postgres-data:

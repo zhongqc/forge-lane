@@ -1,0 +1,11 @@
+node_modules
+.pnpm-store
+.git
+.env
+.env.*
+**/dist
+**/node_modules
+packages/db/generated
+test-results
+playwright-report
+.claude

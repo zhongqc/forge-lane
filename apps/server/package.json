@@ -1,0 +1,9 @@
+{
+  "name": "@forge/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json"
+  }
+}
