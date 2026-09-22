@@ -406,6 +406,10 @@ a {
   min-width: 0;
 }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: #fff;
   height: 61px;
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
