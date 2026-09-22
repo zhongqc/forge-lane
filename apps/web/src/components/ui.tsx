@@ -2,7 +2,17 @@ import { useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Check, ChevronDown, Search, X, LoaderCircle } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  Search,
+  X,
+  LoaderCircle,
+  Zap,
+  Bookmark,
+  SquareCheck,
+  GitBranch,
+} from 'lucide-react';
 import type { Actor, IssueType, Priority } from '../../../../packages/shared/src/contracts';
 export function Modal({
   open,
@@ -170,7 +180,17 @@ export const priorityLabels: Record<Priority, string> = {
 export function TypeIcon({ type }: { type: IssueType }) {
   return (
     <span className={`type-icon type-${type.toLowerCase()}`} aria-label={typeLabels[type]}>
-      {type === 'EPIC' ? 'ϟ' : type === 'STORY' ? '▥' : type === 'BUG' ? '●' : type === 'SUBTASK' ? '⊡' : '✓'}
+      {type === 'BUG' ? (
+        '●'
+      ) : type === 'EPIC' ? (
+        <Zap size={11} strokeWidth={2.3} fill="currentColor" aria-hidden="true" />
+      ) : type === 'STORY' ? (
+        <Bookmark size={11} strokeWidth={2.3} aria-hidden="true" />
+      ) : type === 'SUBTASK' ? (
+        <GitBranch size={11} strokeWidth={2.3} aria-hidden="true" />
+      ) : (
+        <SquareCheck size={11} strokeWidth={2.3} aria-hidden="true" />
+      )}
     </span>
   );
 }

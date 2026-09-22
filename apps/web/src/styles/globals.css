@@ -827,8 +827,8 @@ a {
   color: #9096a4;
 }
 .type-icon {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
   display: inline-flex;
   align-items: center;
@@ -843,6 +843,8 @@ a {
   background: #75ae94;
 }
 .type-bug {
+  width: 12px;
+  height: 12px;
   background: #de8781;
   font-size: 6px;
 }
