@@ -176,16 +176,12 @@ export function TypeIcon({ type }: { type: IssueType }) {
 }
 export function PriorityIcon({ priority }: { priority: Priority }) {
   return (
-    <span className={`priority priority-${priority.toLowerCase()}`} title={priorityLabels[priority]}>
-      {priority === 'URGENT'
-        ? '‼'
-        : priority === 'HIGH'
-          ? '↑'
-          : priority === 'MEDIUM'
-            ? '='
-            : priority === 'LOW'
-              ? '↓'
-              : '—'}
+    <span
+      className={`priority priority-${priority.toLowerCase()}`}
+      title={priorityLabels[priority]}
+      aria-label={priorityLabels[priority]}
+    >
+      {{ URGENT: 'P0', HIGH: 'P1', MEDIUM: 'P2', LOW: 'P3', NONE: '—' }[priority]}
     </span>
   );
 }
