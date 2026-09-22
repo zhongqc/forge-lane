@@ -44,22 +44,24 @@ test('500 issue board renders, remains interactive and persists a move', async (
   const renderMs = Date.now() - start;
   await expect(page.getByRole('button', { name: '性能事项 1', exact: true })).toBeVisible();
   const handle = page.getByRole('button', { name: `拖动 ${project.key}-1`, exact: true });
-  const target = page.getByRole('region', { name: 'In Progress', exact: true });
+  const target = page.getByRole('region', { name: '开发中', exact: true });
   const a = await handle.boundingBox();
-  const b = await target.getByRole('heading', { name: 'In Progress', exact: true }).boundingBox();
-  if (!a || !b) throw new Error('Drag bounds missing');
+  if (!a) throw new Error('Drag bounds missing');
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 20, a.y + a.height / 2 + 5, { steps: 5 });
+  const b = await page.getByRole('region', { name: '移至 In Progress', exact: true }).boundingBox();
+  if (!b) throw new Error('Drop bounds missing');
   const move = page.waitForResponse(
     (r) => r.url().endsWith('/board/moves') && r.request().method() === 'POST',
   );
   const dragStart = Date.now();
-  await page.mouse.move(b.x + 30, b.y + 35, { steps: 12 });
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
   await page.mouse.up();
   expect((await move).ok()).toBeTruthy();
   const dragMs = Date.now() - dragStart;
-  await expect(target.getByRole('button', { name: '性能事项 1', exact: true })).toBeVisible();
-  const sourceColumn = page.locator('.board-column').first();
+  await expect(target.getByRole('button', { name: '性能事项 1', exact: true })).toHaveCount(1);
+  const sourceColumn = page.locator('.column-scroll').first();
   const sourceCard = sourceColumn.locator('.issue-card').first();
   const sourceBounds = await sourceCard.boundingBox();
   const columnBounds = await sourceColumn.boundingBox();

@@ -10,7 +10,7 @@ test('create, edit, describe and move an issue without losing board context', as
   await page.getByLabel('项目名称').fill('体验项目');
   await page.getByLabel('项目标识').fill(`UX${Date.now().toString(36).toUpperCase()}`);
   await page.getByRole('button', { name: '创建项目', exact: true }).last().click();
-  await page.getByRole('button', { name: '新建事项 C', exact: true }).click();
+  await page.locator('.topbar').getByRole('button', { name: '创建事项', exact: true }).click();
   await page.getByPlaceholder('需要完成什么？').fill('体验编辑与拖拽');
   await page.getByRole('button', { name: '创建事项', exact: true }).click();
   await page.getByText('体验编辑与拖拽', { exact: true }).click();

@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { Plus, Search, ArrowUpDown, ArrowUpRight } from 'lucide-react';
+import { Search, ArrowUpDown, ArrowUpRight } from 'lucide-react';
 import { TypeIcon, Avatar, PriorityIcon, MultiSelect } from '../../components/ui';
 import type { BoardData, Issue } from '../../../../../packages/shared/src/contracts';
 export function IssueListPage({
   data,
   onOpen,
-  onCreate,
   epics = false,
 }: {
   data: BoardData;
   onOpen: (i: Issue) => void;
-  onCreate: () => void;
   epics?: boolean;
 }) {
   const [search, setSearch] = useState('');
@@ -38,10 +36,6 @@ export function IssueListPage({
           </h1>
           <p>{epics ? '把长期目标拆解为可交付的工作。' : '每一项工作，都能找到清晰的归属。'}</p>
         </div>
-        <button className="primary" disabled={!data.permissions.canWrite} onClick={onCreate}>
-          <Plus size={16} />
-          {epics ? '新建 Epic' : '新建事项'}
-        </button>
       </div>
       <div className="list-toolbar">
         <div className="search-input">

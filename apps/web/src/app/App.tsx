@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -14,7 +14,6 @@ import {
   LogOut,
   Search,
   ArrowUpRight,
-  Command,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { SelectField, Avatar, ErrorNotice, Loading, Modal } from '../components/ui';
@@ -89,6 +88,13 @@ export function App() {
     enabled: !!selected,
     refetchInterval: 30000,
   });
+  const openGlobalCreate = useCallback(() => {
+    if (!board.data?.permissions.canWrite) return;
+    setCreateIssue({
+      type: view === 'epics' ? 'EPIC' : 'TASK',
+      sprintId: view === 'board' ? board.data.sprints.find((s) => s.status === 'ACTIVE')?.id : undefined,
+    });
+  }, [board.data, view]);
   const match = /^\/issues\/([^/]+)$/.exec(location.pathname);
   const issueKey = match?.[1];
   useEffect(() => {
@@ -102,9 +108,7 @@ export function App() {
         return;
       if (e.key === 'c' && !e.metaKey && !e.ctrlKey && board.data?.permissions.canWrite) {
         e.preventDefault();
-        setCreateIssue({
-          sprintId: view === 'board' ? board.data?.sprints.find((s) => s.status === 'ACTIVE')?.id : undefined,
-        });
+        openGlobalCreate();
       }
       if (e.key === '/') {
         e.preventDefault();
@@ -113,7 +117,7 @@ export function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [board.data, view]);
+  }, [board.data, openGlobalCreate]);
   if (me.isPending) return <Loading />;
   if (me.error) {
     if (me.error instanceof ApiError && me.error.status === 401)
@@ -281,9 +285,15 @@ export function App() {
           <span className="breadcrumb-slash">/</span>
           <span>{nav.find((n) => n.id === view)?.name}</span>
           <div className="toolbar-spacer" />
-          <span className="topbar-hint">
-            <Command size={12} /> 专注于正在创造的事
-          </span>
+          <button
+            className="primary global-create"
+            aria-label="创建事项"
+            disabled={!board.data?.permissions.canWrite}
+            onClick={openGlobalCreate}
+            title={!selected ? '请先创建项目' : '在当前项目创建事项（C）'}
+          >
+            <Plus size={15} /> 创建 <kbd>C</kbd>
+          </button>
         </header>
         {selected && (
           <nav className="mobile-nav" aria-label="项目导航">
@@ -353,12 +363,7 @@ export function App() {
                   <p>只有项目管理员可以修改设置。</p>
                 )
               ) : (
-                <IssueListPage
-                  data={board.data}
-                  onOpen={open}
-                  epics={view === 'epics'}
-                  onCreate={() => setCreateIssue({ type: view === 'epics' ? 'EPIC' : 'TASK' })}
-                />
+                <IssueListPage data={board.data} onOpen={open} epics={view === 'epics'} />
               )}
             </>
           ) : null}

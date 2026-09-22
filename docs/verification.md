@@ -76,3 +76,17 @@
 ### 整卡拖动触发区域
 
 移除卡片上的六点手柄，拖动激活按钮覆盖整张卡片，卡片通过捕获阶段接收正文区域的拖动事件。新增浏览器用例逐一验证编号、标题、类型、底部信息、描述留白和边缘空白处都能起拖，同时普通标题点击仍打开详情。
+
+## 2026-09-22：状态落区与全局创建
+
+本节替代上文旧的跨状态插入行为。看板每列常态下为连续卡片列表，卡片标示具体状态；同列拖动仅调整排序，保持状态。拖动时其他列同时显示各状态落区，松手选择状态并追加到目标列（相同 Sprint）的末尾；同列状态修改通过详情字段完成。
+
+参考 Atlassian 的 [状态落区说明](https://support.atlassian.com/jira-software-cloud/docs/assign-statuses-and-edit-columns-in-a-team-managed-project/) 与 [Rank 说明](https://support.atlassian.com/jira-software-cloud/docs/rank-an-issue/)。手动 Rank 与按字段排序不同，本次没有新增字段排序菜单。
+
+主要创建入口移到全局顶栏，支持 C 快捷键。看板、Backlog、事项列表、Epics 和设置均可创建；Epics 默认 Epic，看板默认当前活跃 Sprint。保留列头加号及 Sprint 上下文创建，移除重复页面主按钮。所有入口共用带 MDXEditor 描述的创建弹窗。
+
+Board move API 区分 `rank` / `transition`，拒绝跨列排序及状态切换携带邻居坐标；排序范围覆盖同列映射的全部状态。活动记录保存操作意图，纯排序不写伪状态变更；保留版本、幂等、事务和 Actor 协议。新增两项数据库集成用例覆盖上述边界、历史、幂等及版本冲突。
+
+开发浏览器覆盖连续列表、全部状态落区、取消及全局创建弹窗；手动检查未修改演示事项。Oxlint、Oxfmt、TypeScript、5 项单元测试、21 项数据库集成测试及构建通过。生产预览验证结果见本节后续记录。
+
+最终 `E2E_BASE_URL=http://localhost:3004 pnpm exec playwright test`：15 项全部通过，包含整卡各区域起拖、跨列状态选择、同列跨状态排序、键盘排序、全局及上下文创建、描述冲突和 500 卡片滚动。该次 500 卡片 API 为 25–41ms，首次呈现 4523ms，拖动含请求 508ms（本机单轮自动化观测，首次呈现仍有优化空间）。Docker 构建成功，更新后的 `forge-lane-app-preview` 健康状态为 healthy。

@@ -44,6 +44,9 @@ function CardContent({
       <div className="card-top">
         <span className="issue-key">{issue.key}</span>
         <div className="card-top-right">
+          <span className={`card-status category-${issue.status.category}`} title={issue.status.name}>
+            {issue.status.name}
+          </span>
           <PriorityIcon priority={issue.priority} />
           {handle}
         </div>
@@ -69,12 +72,20 @@ export function Card({
   issue,
   onOpen,
   readOnly = false,
+  columnId,
+  receiving = false,
 }: {
   issue: Issue;
   onOpen: (i: Issue) => void;
   readOnly?: boolean;
+  columnId: string;
+  receiving?: boolean;
 }) {
-  const sortable = useSortable({ disabled: readOnly, id: issue.id, data: { statusId: issue.statusId } });
+  const sortable = useSortable({
+    disabled: { draggable: readOnly, droppable: readOnly || receiving },
+    id: issue.id,
+    data: { kind: 'card', columnId, statusId: issue.statusId },
+  });
   return (
     <article
       ref={sortable.setNodeRef}
@@ -98,98 +109,157 @@ export function Card({
     </article>
   );
 }
-function Section({
-  id,
-  name,
-  issues,
-  onOpen,
-  onCreate,
-  overId,
-  insertBefore,
-  readOnly,
+function StatusDropZone({
+  status,
+  columnId,
+  selected,
 }: {
-  id: string;
-  name: string;
-  issues: Issue[];
-  onOpen: (i: Issue) => void;
-  onCreate: (statusId: string) => void;
-  overId?: string;
-  insertBefore?: string | null;
-  readOnly: boolean;
+  status: BoardData['statuses'][number];
+  columnId: string;
+  selected: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    disabled: readOnly,
-    id: `section:${id}`,
-    data: { statusId: id },
+    id: `transition:${status.id}`,
+    data: { kind: 'transition', columnId, statusId: status.id },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      role="region"
+      aria-label={`移至 ${status.name}`}
+      className={`status-drop-zone ${selected || isOver ? 'selected' : ''}`}
+    >
+      <span className={`drop-status-dot category-${status.category}`} />
+      <strong>{status.name}</strong>
+      <span>{selected || isOver ? '松手切换到此状态' : '拖到这里'}</span>
+    </div>
+  );
+}
+function BoardColumn({
+  column,
+  index,
+  statuses,
+  issues,
+  active,
+  sourceColumnId,
+  target,
+  insertBefore,
+  readOnly,
+  onOpen,
+  onCreate,
+}: {
+  column: BoardData['columns'][number];
+  index: number;
+  statuses: BoardData['statuses'];
+  issues: Issue[];
+  active: Issue | null;
+  sourceColumnId?: string;
+  target?: string;
+  insertBefore?: string | null;
+  readOnly: boolean;
+  onOpen: (issue: Issue) => void;
+  onCreate: (statusId?: string) => void;
+}) {
+  const receiving = !!active && sourceColumnId !== column.id;
+  const { setNodeRef } = useDroppable({
+    id: `column:${column.id}`,
+    disabled: readOnly || receiving,
+    data: { kind: 'column', columnId: column.id },
   });
   return (
     <section
-      ref={setNodeRef}
-      aria-label={name}
-      className={`status-section ${isOver || overId === id ? 'drop-active' : ''}`}
+      aria-label={column.name}
+      className={`board-column column-${index} ${receiving ? 'is-receiving' : ''}`}
     >
-      <header>
-        <span className="status-dot" />
-        <h3>{name}</h3>
-        <span className="section-count">{issues.length}</span>
+      <div className="column-heading">
+        <span className="column-marker" />
+        <h2>{column.name}</h2>
+        <span>{issues.length}</span>
         <button
           className="icon-button"
           disabled={readOnly}
-          onClick={() => onCreate(id)}
-          aria-label={`在 ${name} 新建事项`}
+          aria-label={`在${column.name}新建事项`}
+          onClick={() => onCreate(column.statuses[0]?.statusId)}
         >
-          <Plus size={13} />
+          <Plus size={16} />
         </button>
-      </header>
-      <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <div className="section-cards">
-          {issues.map((i) => (
-            <div className="card-slot" key={i.id}>
-              {overId === id && insertBefore === i.id && (
-                <div className="drop-indicator" aria-label="放到这里" />
+      </div>
+      <div ref={setNodeRef} className="column-scroll">
+        <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <div className="section-cards">
+            {issues.map((issue) => (
+              <div className="card-slot" key={issue.id}>
+                {!receiving && target === active?.statusId && insertBefore === issue.id && (
+                  <div className="drop-indicator" aria-label="放到这里" />
+                )}
+                <Card
+                  issue={issue}
+                  onOpen={onOpen}
+                  readOnly={readOnly}
+                  receiving={receiving}
+                  columnId={column.id}
+                />
+              </div>
+            ))}
+            {!receiving &&
+              column.id === sourceColumnId &&
+              target === active?.statusId &&
+              insertBefore === null && (
+                <div className="drop-indicator drop-indicator-end" aria-label="放到这里" />
               )}
-              <Card readOnly={readOnly} issue={i} onOpen={onOpen} />
-            </div>
-          ))}
-          {overId === id && insertBefore === null && (
-            <div className="drop-indicator drop-indicator-end" aria-label="放到这里" />
-          )}
-          {!issues.length && <div className="empty-drop">{isOver ? '松开放到这里' : '暂无事项'}</div>}
+            {!issues.length && <div className="empty-drop">暂无事项</div>}
+          </div>
+        </SortableContext>
+      </div>
+      {receiving && (
+        <div className="column-drop-zones" aria-label={`${column.name}可用状态`}>
+          <p>选择目标状态</p>
+          {column.statuses.map((mapping) => {
+            const status = statuses.find((item) => item.id === mapping.statusId);
+            return status ? (
+              <StatusDropZone
+                key={status.id}
+                status={status}
+                columnId={column.id}
+                selected={target === status.id}
+              />
+            ) : null;
+          })}
         </div>
-      </SortableContext>
-      <button className="section-create" disabled={readOnly} onClick={() => onCreate(id)}>
-        <Plus size={13} /> 添加事项
-      </button>
+      )}
     </section>
   );
 }
 const collision: CollisionDetection = (args) => {
-  const hits = pointerWithin(args);
-  // Prefer a card over its containing section. Stable DOM geometry avoids feedback loops.
-  const cards = hits.filter((hit) => !String(hit.id).startsWith('section:'));
+  const hits = args.pointerCoordinates ? pointerWithin(args) : rectIntersection(args);
+  const transitions = hits.filter((hit) => String(hit.id).startsWith('transition:'));
+  if (transitions.length) return transitions;
+  const cards = hits.filter((hit) => !String(hit.id).startsWith('column:'));
   if (cards.length) return cards;
-  const section = hits.find((hit) => String(hit.id).startsWith('section:'));
-  if (section && args.pointerCoordinates) {
-    const statusId = String(section.id).slice(8);
+  const column = hits.find((hit) => String(hit.id).startsWith('column:'));
+  if (column && args.pointerCoordinates) {
+    const columnId = String(column.id).slice(7);
     const nearby = args.droppableContainers
       .filter(
         (container) =>
-          !String(container.id).startsWith('section:') && container.data.current?.statusId === statusId,
+          container.data.current?.kind === 'card' && container.data.current?.columnId === columnId,
       )
-      .map((container) => ({ id: container.id, rect: args.droppableRects.get(container.id) }))
-      .filter((item) => item.rect !== undefined);
+      .flatMap((container) => {
+        const rect = args.droppableRects.get(container.id);
+        return rect ? [{ id: container.id, rect }] : [];
+      });
     const y = args.pointerCoordinates.y;
-    const firstTop = Math.min(...nearby.map((item) => item.rect!.top));
-    const lastBottom = Math.max(...nearby.map((item) => item.rect!.bottom));
-    if (y >= firstTop && y <= lastBottom) {
+    if (
+      y >= Math.min(...nearby.map((item) => item.rect.top)) &&
+      y <= Math.max(...nearby.map((item) => item.rect.bottom))
+    ) {
       nearby.sort(
-        (a, b) =>
-          Math.abs(y - a.rect!.top - a.rect!.height / 2) - Math.abs(y - b.rect!.top - b.rect!.height / 2),
+        (a, b) => Math.abs(y - a.rect.top - a.rect.height / 2) - Math.abs(y - b.rect.top - b.rect.height / 2),
       );
       if (nearby[0]) return [{ id: nearby[0].id }];
     }
   }
-  return hits.length ? hits : args.pointerCoordinates ? [] : rectIntersection(args);
+  return hits;
 };
 // Navigate explicit card/empty-section targets, excluding the current target. The generic
 // sortable getter can choose the current card again when nested sections share its bounds.
@@ -203,11 +273,11 @@ const boardKeyboardCoordinates: KeyboardCoordinateGetter = (event, { context }) 
   const candidates = containers.flatMap((container) => {
     if (container.id === currentId) return [];
     if (
-      String(container.id).startsWith('section:') &&
+      container.data.current?.kind === 'column' &&
       containers.some(
         (card) =>
-          !String(card.id).startsWith('section:') &&
-          card.data.current?.statusId === container.data.current?.statusId,
+          card.data.current?.kind === 'card' &&
+          card.data.current?.columnId === container.data.current?.columnId,
       )
     )
       return [];
@@ -309,9 +379,10 @@ export function BoardPage({
         const bottom = Math.min(bounds.bottom, window.innerHeight);
         if (point.x >= bounds.left && point.x <= bounds.right && point.y >= top && point.y <= bottom) {
           element.scrollLeft += velocity(point.x, bounds.left, bounds.right) * scale;
-          for (const column of element.querySelectorAll<HTMLElement>('.board-column')) {
+          for (const column of element.querySelectorAll<HTMLElement>('.column-scroll')) {
             const rect = column.getBoundingClientRect();
             if (point.x >= rect.left && point.x <= rect.right) {
+              if (column.closest('.is-receiving')) break;
               column.scrollTop +=
                 velocity(point.y, Math.max(rect.top, top), Math.min(rect.bottom, bottom)) * scale;
               break;
@@ -364,46 +435,72 @@ export function BoardPage({
       labelFilters,
     ],
   );
+  const sourceColumnId = active
+    ? data.columns.find((column) => column.statuses.some((status) => status.statusId === active.statusId))?.id
+    : undefined;
   function project(e: DragOverEvent) {
-    if (!active || !e.over) {
+    const reset = () => {
       setTarget(undefined);
       setProjection(null);
       setInsertBefore(undefined);
+    };
+    if (!active || !e.over || e.over.id === active.id) {
+      reset();
       return;
     }
-    const over = String(e.over.id);
-    if (over === active.id) {
-      setTarget(undefined);
-      setProjection(null);
+    const drop = e.over.data.current;
+    if (!drop) {
+      reset();
+      return;
+    }
+    if (drop.kind === 'transition') {
+      if (drop.columnId === sourceColumnId) {
+        reset();
+        return;
+      }
+      const status = data.statuses.find((item) => item.id === drop.statusId);
+      if (!status) {
+        reset();
+        return;
+      }
+      setTarget(status.id);
       setInsertBefore(undefined);
+      setProjection([
+        ...data.issues.filter((i) => i.id !== active.id),
+        { ...active, statusId: status.id, status },
+      ]);
       return;
     }
-    const statusId = over.startsWith('section:')
-      ? over.slice(8)
-      : data.issues.find((i) => i.id === over)?.statusId;
-    if (!statusId) return;
-    setTarget(statusId);
-    const items = data.issues.filter((i) => i.id !== active.id);
-    const candidates = visible.filter((i) => i.id !== active.id && i.statusId === statusId);
+    if (drop.columnId !== sourceColumnId) {
+      reset();
+      return;
+    }
+    setTarget(active.statusId);
+    const column = data.columns.find((item) => item.id === sourceColumnId)!;
+    const candidates = visible.filter(
+      (i) => i.id !== active.id && column.statuses.some((status) => status.statusId === i.statusId),
+    );
     const translated = e.active.rect.current.translated;
     const y = pointer.current?.y ?? (translated ? translated.top + translated.height / 2 : 0);
     let next: Issue | undefined;
-    if (over.startsWith('section:')) {
-      // Header means first position; whitespace below the last card means append.
-      if (y < e.over.rect.top + 42) next = candidates[0];
+    if (drop.kind === 'column') {
+      if (y < e.over.rect.top + 20) next = candidates[0];
     } else {
-      const index = candidates.findIndex((i) => i.id === over);
+      const index = candidates.findIndex((i) => i.id === e.over!.id);
+      if (index < 0) {
+        reset();
+        return;
+      }
       const after = pointer.current ? y > e.over.rect.top + e.over.rect.height / 2 : e.delta.y > 0;
       next = candidates[index + (after ? 1 : 0)];
     }
     setInsertBefore(next?.id ?? null);
+    const items = data.issues.filter((i) => i.id !== active.id);
     const index = next ? items.findIndex((i) => i.id === next.id) : -1;
-    items.splice(index >= 0 ? index : items.length, 0, { ...active, statusId });
+    items.splice(index >= 0 ? index : items.length, 0, active);
     if (
       projection?.length === items.length &&
-      items.every(
-        (item, index) => item.id === projection[index].id && item.statusId === projection[index].statusId,
-      )
+      items.every((item, i) => item.id === projection[i].id && item.statusId === projection[i].statusId)
     )
       return;
     setProjection(items);
@@ -418,28 +515,23 @@ export function BoardPage({
     setInsertBefore(undefined);
     pointer.current = null;
     if (!moving || !e.over || !destination) return;
-    const order = (projected ?? data.issues).filter(
-      (i) =>
-        i.statusId === destination &&
-        i.sprintId === moving.sprintId &&
-        ['STORY', 'TASK', 'BUG'].includes(i.type),
-    );
+    const column = data.columns.find((c) => c.statuses.some((s) => s.statusId === destination));
+    if (!column) return;
+    const intent = column.id === sourceColumnId ? 'rank' : 'transition';
+    const inRankGroup = (i: Issue) =>
+      column.statuses.some((s) => s.statusId === i.statusId) &&
+      i.sprintId === moving.sprintId &&
+      ['STORY', 'TASK', 'BUG'].includes(i.type);
+    const order = (projected ?? data.issues).filter(inRankGroup);
     const idx = order.findIndex((i) => i.id === moving.id);
-    const original = data.issues.filter(
-      (i) =>
-        i.statusId === moving.statusId &&
-        i.sprintId === moving.sprintId &&
-        ['STORY', 'TASK', 'BUG'].includes(i.type),
-    );
+    const original = data.issues.filter(inRankGroup);
     const originalIndex = original.findIndex((i) => i.id === moving.id);
     if (
-      destination === moving.statusId &&
+      intent === 'rank' &&
       original[originalIndex - 1]?.id === order[idx - 1]?.id &&
       original[originalIndex + 1]?.id === order[idx + 1]?.id
     )
       return;
-    const column = data.columns.find((c) => c.statuses.some((s) => s.statusId === destination));
-    if (!column) return;
     const before = data.issues.find((i) => i.id === moving.id)!;
     qc.setQueryData<BoardData>(['board', data.project.id], (b) =>
       b
@@ -450,7 +542,13 @@ export function BoardPage({
               ...b.issues.filter((i) => projected && !projected.some((p) => p.id === i.id)),
             ].map((i) => {
               const latest = b.issues.find((item) => item.id === i.id) ?? i;
-              return i.id === moving.id ? { ...latest, statusId: destination } : latest;
+              return i.id === moving.id
+                ? {
+                    ...latest,
+                    statusId: destination,
+                    status: data.statuses.find((status) => status.id === destination)!,
+                  }
+                : latest;
             }),
           }
         : b,
@@ -461,12 +559,14 @@ export function BoardPage({
           `/projects/${data.project.id}/board/moves`,
           'POST',
           {
+            intent,
             issueId: moving.id,
             version: current.version,
             targetColumnId: column.id,
             targetStatusId: destination,
-            previousIssueId: order[idx - 1]?.id ?? null,
-            nextIssueId: order[idx + 1]?.id ?? null,
+            ...(intent === 'rank'
+              ? { previousIssueId: order[idx - 1]?.id ?? null, nextIssueId: order[idx + 1]?.id ?? null }
+              : {}),
           },
           crypto.randomUUID(),
         ),
@@ -499,10 +599,6 @@ export function BoardPage({
           </h1>
           <p>把重要的事，推进到下一步。</p>
         </div>
-        <button className="primary" disabled={!data.permissions.canWrite} onClick={() => onCreate()}>
-          <Plus size={16} />
-          新建事项 <kbd>C</kbd>
-        </button>
       </div>
       <div className="board-toolbar">
         <div className="search-input">
@@ -651,39 +747,20 @@ export function BoardPage({
       >
         <div ref={boardElement} className={`board-columns ${active ? 'is-dragging' : ''}`}>
           {data.columns.map((col, index) => (
-            <div className={`board-column column-${index}`} key={col.id}>
-              <div className="column-heading">
-                <span className="column-marker" />
-                <h2>{col.name}</h2>
-                <span>
-                  {visible.filter((i) => col.statuses.some((s) => s.statusId === i.statusId)).length}
-                </span>
-                <button
-                  className="icon-button"
-                  disabled={!data.permissions.canWrite}
-                  aria-label={`在${col.name}新建事项`}
-                  onClick={() => onCreate(col.statuses[0]?.statusId)}
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              {col.statuses.map((m) => {
-                const s = data.statuses.find((s) => s.id === m.statusId);
-                return s ? (
-                  <Section
-                    key={s.id}
-                    id={s.id}
-                    name={s.name}
-                    issues={visible.filter((i) => i.statusId === s.id)}
-                    onOpen={onOpen}
-                    onCreate={onCreate}
-                    overId={target}
-                    insertBefore={insertBefore}
-                    readOnly={!data.permissions.canWrite}
-                  />
-                ) : null;
-              })}
-            </div>
+            <BoardColumn
+              key={col.id}
+              column={col}
+              index={index}
+              statuses={data.statuses}
+              issues={visible.filter((i) => col.statuses.some((status) => status.statusId === i.statusId))}
+              active={active}
+              sourceColumnId={sourceColumnId}
+              target={target}
+              insertBefore={insertBefore}
+              readOnly={!data.permissions.canWrite}
+              onOpen={onOpen}
+              onCreate={onCreate}
+            />
           ))}
         </div>
         <DragOverlay dropAnimation={null}>
@@ -699,7 +776,7 @@ export function BoardPage({
           <span className="live-dot" />
           所有更改自动同步
         </span>
-        <span>拖拽推进事项 · 点击卡片查看详情</span>
+        <span>列内拖动排序 · 跨列选择状态 · 点击标题查看详情</span>
       </div>
     </>
   );

@@ -70,10 +70,24 @@ export class BoardService {
         where: { projectId, columnId: input.targetColumnId, statusId: input.targetStatusId },
       });
       if (!mapping) fail(422, '落点状态不属于目标列');
+      const source = await tx.boardColumnStatus.findFirst({ where: { projectId, statusId: issue.statusId } });
+      const intent = input.intent ?? (source?.columnId === input.targetColumnId ? 'rank' : 'transition');
+      if (
+        intent === 'rank' &&
+        (source?.columnId !== input.targetColumnId || issue.statusId !== input.targetStatusId)
+      )
+        fail(422, '列内排序不能改变状态或跨列');
+      if (intent === 'transition' && source?.columnId === input.targetColumnId)
+        fail(422, '同列内请通过事项详情修改状态');
+      if (intent === 'transition' && (input.previousIssueId || input.nextIssueId || input.targetSortOrder))
+        fail(422, '跨列拖动只选择状态，不指定排序位置');
+      const mappings = await tx.boardColumnStatus.findMany({
+        where: { projectId, columnId: input.targetColumnId },
+      });
       const list = await tx.issue.findMany({
         where: {
           projectId,
-          statusId: input.targetStatusId,
+          statusId: { in: mappings.map((m) => m.statusId) },
           sprintId: issue.sprintId,
           id: { not: issue.id },
           type: { in: ['STORY', 'TASK', 'BUG'] },
@@ -147,7 +161,10 @@ export class BoardService {
         issue.id,
         'MOVED',
         {
-          statusId: { before: issue.statusId, after: input.targetStatusId },
+          intent,
+          ...(intent === 'transition'
+            ? { statusId: { before: issue.statusId, after: input.targetStatusId } }
+            : {}),
           boardOrder: { before: issue.boardOrder.toString(), after: moved.boardOrder.toString() },
         },
         moved.version,

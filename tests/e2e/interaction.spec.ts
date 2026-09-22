@@ -22,25 +22,38 @@ async function fixture(page: Page) {
   await expect(page.getByRole('button', { name: '验证交互可靠性', exact: true })).toBeVisible();
   return { project, board, issue };
 }
-test('precise empty section drop submits one move and reload persists', async ({ page }) => {
-  const { issue } = await fixture(page);
+test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
+  const { issue, board } = await fixture(page);
   let count = 0;
   page.on('request', (r) => {
     if (r.url().endsWith('/board/moves')) count++;
   });
-  const handle = page.getByRole('button', { name: `拖动 ${issue.key}` });
-  const drop = page.getByRole('region', { name: 'Code Review', exact: true });
-  const a = await handle.boundingBox();
-  const b = await drop.boundingBox();
-  if (!a || !b) throw new Error('Drop geometry missing');
-  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await expect(page.locator('.status-drop-zone')).toHaveCount(0);
+  const a = await page.getByRole('button', { name: `拖动 ${issue.key}` }).boundingBox();
+  if (!a) throw new Error('Drag bounds missing');
+  await page.mouse.move(a.x + 30, a.y + 40);
   await page.mouse.down();
+  await page.mouse.move(a.x + 45, a.y + 45, { steps: 5 });
+  await expect(page.locator('.status-drop-zone')).toHaveCount(6);
+  await expect(page.getByRole('region', { name: '移至 In Progress', exact: true })).toBeVisible();
+  const drop = page.getByRole('region', { name: '移至 Code Review', exact: true });
+  const b = await drop.boundingBox();
+  if (!b) throw new Error('Drop bounds missing');
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 20 });
+  await expect(drop).toHaveClass(/selected/);
+  const response = page.waitForResponse((r) => r.url().endsWith('/board/moves'));
   await page.mouse.up();
-  await expect(drop.getByRole('button', { name: '验证交互可靠性', exact: true })).toBeVisible();
-  await expect.poll(() => count).toBe(1);
+  expect((await response).ok()).toBeTruthy();
+  await expect(page.locator('.status-drop-zone')).toHaveCount(0);
+  expect(count).toBe(1);
   await page.reload();
-  await expect(drop.getByRole('button', { name: '验证交互可靠性', exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: '开发中', exact: true })
+      .getByRole('button', { name: issue.title, exact: true }),
+  ).toBeVisible();
+  const saved = await (await page.request.get(`/api/issues/${issue.id}`)).json();
+  expect(saved.statusId).toBe(board.statuses.find((s: { name: string }) => s.name === 'Code Review').id);
 });
 test('description conflict keeps local draft and roundtrip preserves Markdown constructs', async ({
   page,
@@ -129,10 +142,10 @@ test('opening an editor does not turn Markdown normalization into an unsaved edi
 });
 
 test('dragging card body gives stable insertion cue and persists before/after order', async ({ page }) => {
-  const { project, issue } = await fixture(page);
+  const { project, issue, board } = await fixture(page);
   const other = await (
     await page.request.post(`/api/projects/${project.id}/issues`, {
-      data: { type: 'TASK', title: '第二张排序卡片' },
+      data: { type: 'TASK', title: '第二张排序卡片', statusId: board.columns[0].statuses[1].statusId },
     })
   ).json();
   await page.reload();
@@ -177,7 +190,8 @@ test('dragging card body gives stable insertion cue and persists before/after or
       ),
     )
     .toEqual([issue.id, other.id]);
-  await first.getByRole('button', { name: issue.title, exact: true }).click();
+  expect((await (await page.request.get(`/api/issues/${issue.id}`)).json()).statusId).toBe(issue.statusId);
+  await first.getByRole('button', { name: issue.title, exact: true }).click({ delay: 100 });
   await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
 });
 
@@ -188,10 +202,12 @@ test('Escape cancels a drag without writing', async ({ page }) => {
     if (r.url().endsWith('/board/moves')) count++;
   });
   const a = await page.getByRole('button', { name: `拖动 ${issue.key}` }).boundingBox();
-  const b = await page.getByRole('region', { name: 'Code Review', exact: true }).boundingBox();
-  if (!a || !b) throw new Error('Geometry missing');
+  if (!a) throw new Error('Geometry missing');
   await page.mouse.move(a.x + 5, a.y + 5);
   await page.mouse.down();
+  await page.mouse.move(a.x + 25, a.y + 25, { steps: 5 });
+  const b = await page.getByRole('region', { name: '移至 Code Review', exact: true }).boundingBox();
+  if (!b) throw new Error('Drop bounds missing');
   await page.mouse.move(b.x + 50, b.y + 50, { steps: 12 });
   await page.keyboard.press('Escape');
   await page.mouse.up();
@@ -203,7 +219,7 @@ test('creation includes rich description, preserves failed draft and resets cont
   page,
 }) => {
   const { project } = await fixture(page);
-  await page.getByRole('button', { name: /^新建事项/ }).click();
+  await page.locator('.topbar').getByRole('button', { name: '创建事项', exact: true }).click();
   await page.getByPlaceholder('需要完成什么？').fill('创建时完整描述');
   const editor = page.getByRole('textbox', { name: 'editable markdown', exact: true });
   await editor.click();
@@ -261,39 +277,57 @@ test('keyboard drag reorders with Space and arrow keys', async ({ page }) => {
   await expect(page.locator('.section-cards .issue-key')).toHaveText([other.key, issue.key]);
 });
 
-test('occupied section gap is a precise insertion target', async ({ page }) => {
+test('cross-column status zones remain visible over populated columns and append without ranking coordinates', async ({
+  page,
+}) => {
   const { project, board, issue } = await fixture(page);
-  const targetStatus = board.statuses.find((s: { name: string }) => s.name === 'In Progress');
+  const targetColumn = board.columns[2];
   const others = [];
-  for (const title of ['目标第一张', '目标第二张']) {
+  for (const [index, title] of ['目标第一张', '目标第二张'].entries()) {
     others.push(
       await (
         await page.request.post(`/api/projects/${project.id}/issues`, {
-          data: { type: 'TASK', title, statusId: targetStatus.id },
+          data: { type: 'TASK', title, statusId: targetColumn.statuses[index].statusId },
         })
       ).json(),
     );
   }
   await page.reload();
-  const a = await page.locator('.issue-card').filter({ hasText: issue.key }).boundingBox();
-  const b = await page.locator('.issue-card').filter({ hasText: others[0].key }).boundingBox();
-  if (!a || !b) throw new Error('Geometry missing');
+  const a = await page.getByRole('button', { name: `拖动 ${issue.key}` }).boundingBox();
+  if (!a) throw new Error('Geometry missing');
   await page.mouse.move(a.x + 40, a.y + 45);
   await page.mouse.down();
-  await page.mouse.move(b.x + 40, b.y + b.height + 4, { steps: 15 });
+  await page.mouse.move(a.x + 60, a.y + 50, { steps: 5 });
+  for (const name of ['Ready for Test', 'Testing', 'Ready for Release']) {
+    await expect(page.getByRole('region', { name: `移至 ${name}`, exact: true })).toBeVisible();
+  }
+  const drop = page.getByRole('region', { name: '移至 Ready for Release', exact: true });
+  const b = await drop.boundingBox();
+  if (!b) throw new Error('Missing drop zone');
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 15 });
   const response = page.waitForResponse((r) => r.url().endsWith('/board/moves'));
   await page.mouse.up();
-  expect((await response).ok()).toBeTruthy();
+  const result = await response;
+  expect(result.ok()).toBeTruthy();
+  expect(result.request().postDataJSON()).toMatchObject({
+    intent: 'transition',
+    targetStatusId: targetColumn.statuses[2].statusId,
+  });
+  expect(result.request().postDataJSON()).not.toHaveProperty('nextIssueId');
+  expect(result.request().postDataJSON()).not.toHaveProperty('previousIssueId');
   await page.reload();
-  await expect(
-    page.getByRole('region', { name: 'In Progress', exact: true }).locator('.issue-key'),
-  ).toHaveText([others[0].key, issue.key, others[1].key]);
+  await expect(page.getByRole('region', { name: '测试中', exact: true }).locator('.issue-key')).toHaveText([
+    others[0].key,
+    others[1].key,
+    issue.key,
+  ]);
 });
 
 test('every card surface can start dragging without opening details', async ({ page }) => {
   const { issue } = await fixture(page);
   const card = page.getByRole('article').filter({ hasText: issue.key });
   for (const surface of ['.issue-key', '.card-title', '.card-type', '.card-bottom', '.card-epic', null]) {
+    await card.scrollIntoViewIfNeeded();
     const rect = await (surface ? card.locator(surface) : card).boundingBox();
     if (!rect) throw new Error(`Missing card surface: ${surface}`);
     const x = rect.x + (surface ? Math.max(2, rect.width / 2) : 3);
@@ -309,4 +343,34 @@ test('every card surface can start dragging without opening details', async ({ p
   }
   await card.getByRole('button', { name: issue.title, exact: true }).click({ delay: 100 });
   await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+});
+
+test('global creation is available across views while column quick-create preselects status', async ({
+  page,
+}) => {
+  const { project, board } = await fixture(page);
+  for (const view of ['board', 'backlog', 'issues', 'epics', 'settings']) {
+    await page.goto(`/projects/${project.key}/${view}`);
+    const create = page.locator('.topbar').getByRole('button', { name: '创建事项', exact: true });
+    await expect(create).toBeEnabled();
+    await expect(
+      page.locator('.page-heading').getByRole('button', { name: /新建事项|新建 Epic/ }),
+    ).toHaveCount(0);
+    await create.click();
+    await expect(page.getByRole('dialog', { name: '新建事项', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '事项类型', exact: true })).toContainText(
+      view === 'epics' ? 'Epic' : 'Task',
+    );
+    await page.getByRole('button', { name: '取消', exact: true }).click();
+  }
+  await page.goto(`/projects/${project.key}/board`);
+  await page.getByRole('button', { name: '在开发中新建事项', exact: true }).click();
+  await expect(page.getByRole('button', { name: '状态', exact: true })).toContainText('In Progress');
+  await page.getByPlaceholder('需要完成什么？').fill('列内快捷创建');
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith(`/projects/${project.id}/issues`) && r.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  const created = await (await response).json();
+  expect(created.statusId).toBe(board.columns[1].statuses[0].statusId);
 });

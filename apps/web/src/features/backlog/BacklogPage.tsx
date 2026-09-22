@@ -162,10 +162,6 @@ export function BacklogPage({
             <CalendarDays size={15} />
             创建 Sprint
           </button>
-          <button className="primary" disabled={!data.permissions.canWrite} onClick={() => onCreate()}>
-            <Plus size={16} />
-            新建事项
-          </button>
         </div>
       </div>
       <ErrorNotice error={error} />

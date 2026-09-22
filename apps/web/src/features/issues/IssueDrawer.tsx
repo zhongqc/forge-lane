@@ -499,7 +499,9 @@ export function IssueDrawer({
                           {a.type === 'CREATED'
                             ? '创建了事项'
                             : a.type === 'MOVED'
-                              ? '移动了事项'
+                              ? a.payload.intent === 'rank'
+                                ? '调整了排序'
+                                : '移动了事项'
                               : a.type.startsWith('COMMENT')
                                 ? '更新了评论'
                                 : a.type === 'SPRINT_INHERITED'
