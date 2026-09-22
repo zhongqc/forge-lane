@@ -289,3 +289,24 @@ test('occupied section gap is a precise insertion target', async ({ page }) => {
     page.getByRole('region', { name: 'In Progress', exact: true }).locator('.issue-key'),
   ).toHaveText([others[0].key, issue.key, others[1].key]);
 });
+
+test('every card surface can start dragging without opening details', async ({ page }) => {
+  const { issue } = await fixture(page);
+  const card = page.getByRole('article').filter({ hasText: issue.key });
+  for (const surface of ['.issue-key', '.card-title', '.card-type', '.card-bottom', '.card-epic', null]) {
+    const rect = await (surface ? card.locator(surface) : card).boundingBox();
+    if (!rect) throw new Error(`Missing card surface: ${surface}`);
+    const x = rect.x + (surface ? Math.max(2, rect.width / 2) : 3);
+    const y = rect.y + (surface ? Math.max(2, rect.height / 2) : 3);
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 35, y + 20, { steps: 8 });
+    await expect(page.locator('.drag-preview')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    await expect(page.locator('.drag-preview')).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: '事项详情' })).toHaveCount(0);
+  }
+  await card.getByRole('button', { name: issue.title, exact: true }).click({ delay: 100 });
+  await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+});

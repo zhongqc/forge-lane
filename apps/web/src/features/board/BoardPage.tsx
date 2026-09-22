@@ -17,7 +17,7 @@ import {
   type KeyboardCoordinateGetter,
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { GripVertical, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { runIssueCommand } from '../../lib/issue-mutations';
 import {
@@ -79,7 +79,7 @@ export function Card({
     <article
       ref={sortable.setNodeRef}
       style={{ opacity: sortable.isDragging ? 0.25 : 1 }}
-      onPointerDown={(e) => sortable.listeners?.onPointerDown?.(e)}
+      onPointerDownCapture={(e) => sortable.listeners?.onPointerDown?.(e)}
       className={`issue-card ${readOnly ? '' : 'draggable-card'}`}
     >
       <CardContent
@@ -87,14 +87,12 @@ export function Card({
         onOpen={onOpen}
         handle={
           <button
-            className="drag-handle"
+            className="card-drag-surface"
             disabled={readOnly}
             {...sortable.attributes}
             {...sortable.listeners}
             aria-label={`拖动 ${issue.key}`}
-          >
-            <GripVertical size={16} />
-          </button>
+          />
         }
       />
     </article>
@@ -691,7 +689,7 @@ export function BoardPage({
         <DragOverlay dropAnimation={null}>
           {active && (
             <article className="issue-card drag-preview">
-              <CardContent issue={active} onOpen={() => {}} handle={<GripVertical size={16} />} />
+              <CardContent issue={active} onOpen={() => {}} />
             </article>
           )}
         </DragOverlay>
