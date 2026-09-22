@@ -9,7 +9,8 @@ let board: BoardData;
 let projectId: string;
 beforeAll(async () => {
   app = await createApp();
-  await app.init();
+  // Keep one listener for this suite; Supertest must not close it between requests.
+  await app.listen(0, '127.0.0.1');
   agent = request.agent(app.getHttpServer());
   const tag = Date.now().toString(36).toUpperCase();
   await agent

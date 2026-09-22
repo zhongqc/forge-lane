@@ -14,6 +14,7 @@ export interface ActorContext {
   actorName: string;
   source: 'WEB' | 'API' | 'SYSTEM';
   requestId: string;
+  token?: { id: string; name: string; projectIds: string[]; scopes: string[]; expiresAt: Date };
 }
 export interface Status {
   id: string;

@@ -6,6 +6,7 @@ import type { ActorContext } from '../../../../../packages/shared/src/contracts.
 export class AccessService {
   constructor(@Inject(Db) private db: Db) {}
   async workspace(c: ActorContext, admin = false) {
+    if (admin && c.token) fail(403, '令牌不允许管理操作');
     const m = await this.db.client.workspaceMember.findUnique({
       where: { workspaceId_actorId: { workspaceId: c.workspaceId, actorId: c.actorId } },
     });
@@ -13,6 +14,9 @@ export class AccessService {
     return m;
   }
   async project(c: ActorContext, id: string, mode: 'READ' | 'WRITE' | 'ADMIN' = 'READ') {
+    if (c.token && !c.token.projectIds.includes(id)) fail(404, '项目不存在');
+    if (c.token && (mode === 'ADMIN' || (mode === 'WRITE' && !c.token.scopes.includes('write'))))
+      fail(403, '令牌权限不足');
     const p = await this.db.client.project.findUnique({
       where: { id },
       include: { members: { where: { actorId: c.actorId } } },

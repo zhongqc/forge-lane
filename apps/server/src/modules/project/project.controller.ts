@@ -33,6 +33,9 @@ export class ProjectController {
   update(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string, @Body() b: unknown) {
     return this.service.update(r.actorContext, id, parse(UpdateProjectDto, b));
   }
+  @Get(':id/repositories') repositories(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.repositories(r.actorContext, id);
+  }
   @Get(':id/members') members(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.members(r.actorContext, id);
   }

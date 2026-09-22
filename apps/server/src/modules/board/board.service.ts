@@ -49,7 +49,10 @@ export class BoardService {
       this.db.client.label.findMany({ where: { projectId: id } }),
     ]);
     return {
-      permissions: { canWrite: role !== 'VIEWER', canAdmin: role === 'ADMIN' },
+      permissions: {
+        canWrite: role !== 'VIEWER' && (!c.token || c.token.scopes.includes('write')),
+        canAdmin: role === 'ADMIN' && !c.token,
+      },
       project,
       statuses,
       columns,

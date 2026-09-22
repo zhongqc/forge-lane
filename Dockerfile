@@ -8,6 +8,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/server/package.json apps/server/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/cli/package.json packages/cli/package.json
 RUN --mount=type=cache,id=forge-pnpm,target=/pnpm/store SKIP_INSTALL_SIMPLE_GIT_HOOKS=1 pnpm install --frozen-lockfile --store-dir /pnpm/store --network-concurrency=8 --fetch-timeout=600000
 COPY . .
 RUN pnpm db:generate && pnpm build

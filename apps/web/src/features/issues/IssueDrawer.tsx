@@ -16,7 +16,7 @@ import {
   PenLine,
   Trash2,
 } from 'lucide-react';
-import { IssueDevelopment, GitHubActivity } from '../github/IssueDevelopment';
+import { IssueDevelopment, GitHubActivity, githubUrl } from '../github/IssueDevelopment';
 import { api } from '../../lib/api';
 import { useIssueMutation } from '../../lib/issue-mutations';
 import {
@@ -499,6 +499,8 @@ export function IssueDrawer({
                         <div>
                           {a.type.startsWith('GITHUB_') ? (
                             <GitHubActivity activity={a} />
+                          ) : a.type.startsWith('EXECUTION_') ? (
+                            <ExecutionActivity activity={a} />
                           ) : (
                             <>
                               <strong>{a.actorNameSnapshot}</strong>{' '}
@@ -778,6 +780,40 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
         </div>
       </fieldset>
       <ErrorNotice error={error} />
+    </>
+  );
+}
+
+function ExecutionActivity({ activity }: { activity: Activity }) {
+  const executor = typeof activity.payload.executor === 'string' ? activity.payload.executor : 'CLI';
+  const status = typeof activity.payload.status === 'string' ? activity.payload.status : '';
+  const outcomes: Record<string, string> = {
+    SUCCEEDED: '完成了开发执行',
+    FAILED: '报告执行失败',
+    CANCELLED: '释放了任务',
+  };
+  const summary = typeof activity.payload.summary === 'string' ? activity.payload.summary : '';
+  const pr = githubUrl(activity.payload.prUrl);
+  return (
+    <>
+      <strong>{activity.actorNameSnapshot}</strong> · {executor}{' '}
+      {activity.type === 'EXECUTION_CLAIMED'
+        ? '领取了任务'
+        : activity.type === 'EXECUTION_RENEWED'
+          ? '续期了任务租约'
+          : (outcomes[status] ?? '结束了执行')}
+      {summary && (
+        <div className="markdown">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+            {summary}
+          </ReactMarkdown>
+        </div>
+      )}
+      {pr && (
+        <a href={pr} target="_blank" rel="noreferrer">
+          查看 Pull Request
+        </a>
+      )}
     </>
   );
 }

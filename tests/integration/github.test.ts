@@ -39,7 +39,8 @@ beforeAll(async () => {
   process.env.GITHUB_APP_PRIVATE_KEY = 'mocked-only-no-real-network';
   process.env.GITHUB_WEBHOOK_SECRET = secret;
   app = await createApp();
-  await app.init();
+  // Keep one listener for this suite; Supertest must not close it between requests.
+  await app.listen(0, '127.0.0.1');
   db = app.get(Db);
   worker = app.get(GitHubWorker);
   const client = app.get(GitHubClient);

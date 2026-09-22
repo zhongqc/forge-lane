@@ -12,7 +12,8 @@ let issueId: string;
 beforeAll(async () => {
   app = await createApp();
   installShell(app);
-  await app.init();
+  // Keep one listener for this suite; Supertest must not close it between requests.
+  await app.listen(0, '127.0.0.1');
   agent = request.agent(app.getHttpServer());
   await agent
     .post('/api/auth/register')

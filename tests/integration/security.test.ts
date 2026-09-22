@@ -12,7 +12,8 @@ let issueId: string;
 let viewerEmail: string;
 beforeAll(async () => {
   app = await createApp();
-  await app.init();
+  // Keep one listener for this suite; Supertest must not close it between requests.
+  await app.listen(0, '127.0.0.1');
   admin = request.agent(app.getHttpServer());
   viewer = request.agent(app.getHttpServer());
   outsider = request.agent(app.getHttpServer());

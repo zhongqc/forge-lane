@@ -65,6 +65,29 @@ export class AuthService {
       email: session.user.email,
     };
   }
+  async bearer(raw: string) {
+    const token = await this.db.client.apiToken.findUnique({
+      where: { digest: this.digest(raw) },
+      include: { actor: true, workspace: true },
+    });
+    if (!token || token.revokedAt || token.expiresAt <= new Date() || !token.actor.active)
+      fail(401, '令牌已失效', 'UNAUTHENTICATED');
+    const member = await this.db.client.workspaceMember.findUnique({
+      where: { workspaceId_actorId: { workspaceId: token.workspaceId, actorId: token.actorId } },
+    });
+    if (!member) fail(401, '令牌已失效', 'UNAUTHENTICATED');
+    return {
+      actor: { id: token.actor.id, name: token.actor.name, color: token.actor.color, kind: token.actor.kind },
+      workspace: token.workspace,
+      token: {
+        id: token.id,
+        name: token.name,
+        projectIds: token.projectIds,
+        scopes: token.scopes,
+        expiresAt: token.expiresAt,
+      },
+    };
+  }
   async logout(token?: string) {
     if (token) await this.db.client.session.deleteMany({ where: { id: this.digest(token) } });
   }

@@ -44,6 +44,7 @@ export class ProjectService {
     return this.repo.db.client.project.findMany({
       where: {
         workspaceId: c.workspaceId,
+        ...(c.token ? { id: { in: c.token.projectIds } } : {}),
         ...(wm.role === 'ADMIN' ? {} : { members: { some: { actorId: c.actorId } } }),
       },
       orderBy: { createdAt: 'asc' },
@@ -97,6 +98,18 @@ export class ProjectService {
     });
   }
 
+  async repositories(c: ActorContext, id: string) {
+    await this.access.project(c, id, 'READ');
+    const repositories = await this.repo.db.client.gitHubRepository.findMany({
+      where: { projectId: id },
+      select: { id: true, fullName: true, enabled: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    return repositories.map((repository) => ({
+      ...repository,
+      url: `https://github.com/${repository.fullName}`,
+    }));
+  }
   async members(c: ActorContext, id: string) {
     const p = await this.access.project(c, id);
     const memberships = await this.repo.db.client.workspaceMember.findMany({

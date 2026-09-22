@@ -149,6 +149,8 @@ test('dragging card body gives stable insertion cue and persists before/after or
     })
   ).json();
   await page.reload();
+  // Font swapping changes card text height; measure only after final fonts are ready.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   const first = page.locator('.issue-card').filter({ hasText: issue.key });
   const second = page.locator('.issue-card').filter({ hasText: other.key });
   const a = await first.boundingBox(),
@@ -175,6 +177,8 @@ test('dragging card body gives stable insertion cue and persists before/after or
     })
     .toEqual([other.id, issue.id]);
   await page.reload();
+  // Font swapping changes card text height; measure only after final fonts are ready.
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   const from = await first.boundingBox(),
     to = await second.boundingBox();
   if (!from || !to) throw new Error('Card geometry missing');
