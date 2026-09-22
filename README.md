@@ -33,7 +33,7 @@ SEED_PASSWORD='your-local-demo-password' pnpm db:seed
 
 先让团队成员注册，再由工作区管理员在项目设置里通过邮箱加入工作区并分配项目角色。支持切换工作区。
 
-按已确认范围，暂不实现分析图表、Swimlane、GitHub/OAuth、附件上传和 Agent 自动执行。
+按已确认范围，暂不实现分析图表、Swimlane、OAuth 登录、附件上传和 Agent 自动执行。
 
 ## 质量检查
 
@@ -67,3 +67,7 @@ Schema 在 `packages/db/prisma/schema.prisma`，迁移在其 `migrations/` 子�
 Board / Backlog 分别使用 `Decimal(65,30)` 顺序；API 只接收相邻事项 ID，由服务端定位并局部归一化。Issue / Sprint 更新需要 `version`；冲突返回 409；创建、移动与生命周期命令支持 `Idempotency-Key`，重复请求不会重复创建或追加历史。当前以工作区级事务锁保证跨事项层级和 Sprint 决策一致性，适用于小团队；高写入吞吐场景需进一步拆分锁粒度。
 
 API 文档：http://localhost:3001/api/docs，JSON：http://localhost:3001/api/docs-json。服务层统一接收由认证生成的 `ActorContext`；后续 Agent 增加独立凭据与 Guard，即可复用 Issue / Board / Sprint 命令，不应直接写数据库或信任请求体的 actorId。当前没有 Agent token 管理、MCP 服务或自动开发功能。
+
+## GitHub 开发关联
+
+支持 GitHub App 仓库绑定、Webhook 同步 PR/Commit、事项开发活动与可配置状态自动化。首次导入不改变事项状态，自动化默认关闭；没有 GitHub API 定时轮询。配置和限制见 [GitHub 接入说明](docs/github-integration.md)。

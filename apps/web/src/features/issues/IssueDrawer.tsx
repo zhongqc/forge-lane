@@ -16,6 +16,7 @@ import {
   PenLine,
   Trash2,
 } from 'lucide-react';
+import { IssueDevelopment, GitHubActivity } from '../github/IssueDevelopment';
 import { api } from '../../lib/api';
 import { useIssueMutation } from '../../lib/issue-mutations';
 import {
@@ -476,6 +477,7 @@ export function IssueDrawer({
                   ))}
                 </section>
               )}
+              {issue.type !== 'EPIC' && <IssueDevelopment issueId={issue.id} issueKey={issue.key} />}
               <section className="detail-section activity-section">
                 <div className="detail-tabs">
                   <button className={tab === 'comments' ? 'active' : ''} onClick={() => setTab('comments')}>
@@ -495,18 +497,24 @@ export function IssueDrawer({
                       <div key={a.id} className="activity-item">
                         <span className="activity-dot" />
                         <div>
-                          <strong>{a.actorNameSnapshot}</strong>{' '}
-                          {a.type === 'CREATED'
-                            ? '创建了事项'
-                            : a.type === 'MOVED'
-                              ? a.payload.intent === 'rank'
-                                ? '调整了排序'
-                                : '移动了事项'
-                              : a.type.startsWith('COMMENT')
-                                ? '更新了评论'
-                                : a.type === 'SPRINT_INHERITED'
-                                  ? '同步了父事项的 Sprint'
-                                  : '更新了事项'}
+                          {a.type.startsWith('GITHUB_') ? (
+                            <GitHubActivity activity={a} />
+                          ) : (
+                            <>
+                              <strong>{a.actorNameSnapshot}</strong>{' '}
+                              {a.type === 'CREATED'
+                                ? '创建了事项'
+                                : a.type === 'MOVED'
+                                  ? a.payload.intent === 'rank'
+                                    ? '调整了排序'
+                                    : '移动了事项'
+                                  : a.type.startsWith('COMMENT')
+                                    ? '更新了评论'
+                                    : a.type === 'SPRINT_INHERITED'
+                                      ? '同步了父事项的 Sprint'
+                                      : '更新了事项'}
+                            </>
+                          )}
                           <ActivityChanges activity={a} board={board} />
                           <time>{date(a.occurredAt)}</time>
                         </div>

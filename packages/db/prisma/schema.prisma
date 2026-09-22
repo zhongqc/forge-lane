@@ -96,6 +96,7 @@ model Project {
   key String @unique
   name String
   description String @default("")
+  githubRepositories GitHubRepository[]
   issueCounter Int @default(0)
   version Int @default(1)
   members ProjectMember[]
@@ -165,6 +166,8 @@ model Issue {
   id String @id @default(uuid()) @db.Uuid
   projectId String @db.Uuid
   project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+  githubPullRequests GitHubPullRequestLink[]
+  githubCommits GitHubCommitLink[]
   number Int
   type IssueType
   title String
@@ -283,4 +286,84 @@ model IdempotencyRecord {
   createdAt DateTime @default(now())
   @@unique([actorId,route,key])
   @@index([createdAt])
+}
+
+model GitHubRepository {
+  id String @id @default(uuid()) @db.Uuid
+  projectId String @db.Uuid
+  project Project @relation(fields:[projectId], references:[id], onDelete:Cascade)
+  githubId String
+  fullName String
+  installationId String
+  enabled Boolean @default(true)
+  rules Json @default("[]")
+  pendingAutomations Json @default("[]")
+  lastSyncedAt DateTime?
+  lastError String?
+  requestedAt DateTime? @default(now())
+  leaseUntil DateTime?
+  leaseToken String?
+  attempts Int @default(0)
+  retryAt DateTime?
+  pullRequests GitHubPullRequest[]
+  commits GitHubCommit[]
+  createdAt DateTime @default(now())
+  @@unique([projectId,githubId])
+  @@index([requestedAt,retryAt])
+}
+model GitHubPullRequest {
+  id String @id @default(uuid()) @db.Uuid
+  repositoryId String @db.Uuid
+  repository GitHubRepository @relation(fields:[repositoryId],references:[id],onDelete:Cascade)
+  number Int
+  title String
+  body String @db.Text
+  branch String
+  url String
+  state String
+  draft Boolean
+  reviewRequested Boolean
+  author String
+  remoteUpdatedAt DateTime
+  links GitHubPullRequestLink[]
+  @@unique([repositoryId,number])
+}
+model GitHubPullRequestLink {
+  pullRequestId String @db.Uuid
+  pullRequest GitHubPullRequest @relation(fields:[pullRequestId],references:[id],onDelete:Cascade)
+  issueId String @db.Uuid
+  issue Issue @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  @@id([pullRequestId,issueId])
+  @@index([issueId])
+}
+model GitHubCommit {
+  id String @id @default(uuid()) @db.Uuid
+  repositoryId String @db.Uuid
+  repository GitHubRepository @relation(fields:[repositoryId],references:[id],onDelete:Cascade)
+  sha String
+  message String @db.Text
+  url String
+  author String
+  committedAt DateTime
+  links GitHubCommitLink[]
+  @@unique([repositoryId,sha])
+}
+model GitHubCommitLink {
+  commitId String @db.Uuid
+  commit GitHubCommit @relation(fields:[commitId],references:[id],onDelete:Cascade)
+  issueId String @db.Uuid
+  issue Issue @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  @@id([commitId,issueId])
+  @@index([issueId])
+}
+model GitHubDelivery {
+  id String @id
+  event String
+  payload Json
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  attempts Int @default(0)
+  error String?
+  retryAt DateTime?
+  @@index([processedAt,retryAt])
 }

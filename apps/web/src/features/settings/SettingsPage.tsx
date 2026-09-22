@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { GitHubSettings } from '../github/GitHubSettings';
 import { api } from '../../lib/api';
 import { ErrorNotice, SelectField, Avatar } from '../../components/ui';
 import type { BoardData, Actor } from '../../../../../packages/shared/src/contracts';
@@ -50,6 +51,7 @@ export function SettingsPage({ data }: { data: BoardData }) {
       <ErrorNotice error={error} />
       {message && <div className="success-notice">{message}</div>}
       <div className="settings-content">
+        <GitHubSettings key={data.project.id} data={data} />
         <section className="settings-card">
           <h2>基本信息</h2>
           <form onSubmit={project}>

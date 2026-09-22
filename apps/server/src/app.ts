@@ -14,6 +14,7 @@ import { IssueModule } from './modules/issue/issue.module.js';
 import { SprintModule } from './modules/sprint/sprint.module.js';
 import { WorkspaceService } from './modules/workspace/workspace.service.js';
 import { WorkspaceController } from './modules/workspace/workspace.controller.js';
+import { GitHubModule } from './modules/github/github.module.js';
 import { BoardModule } from './modules/board/board.module.js';
 @Controller('api/health')
 class HealthController {
@@ -26,15 +27,25 @@ class HealthController {
 @Module({
   controllers: [WorkspaceController, HealthController],
   providers: [WorkspaceService],
-  imports: [DatabaseModule, AuthModule, ProjectModule, IssueModule, SprintModule, BoardModule],
+  imports: [DatabaseModule, AuthModule, ProjectModule, IssueModule, SprintModule, BoardModule, GitHubModule],
 })
 class AppModule {}
 export async function createApp() {
   const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
     logger: process.env.NODE_ENV === 'test' ? false : ['error', 'warn'],
   });
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
+  app.use(
+    '/api/github/webhook',
+    express.json({
+      limit: '5mb',
+      verify: (req, _res, buf) => {
+        (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+      },
+    }),
+  );
   app.use(express.json({ limit: '512kb' }));
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {

@@ -42,3 +42,7 @@
 ### 状态落区与全局创建
 
 按用户追加需求，常态列内连续排序；跨列拖动展开所有状态落区，只选择目标状态。后端以 `rank` / `transition` 明确命令与审计含义，排序跨同列状态、仍以 Sprint 为范围。创建主入口移至全局顶栏，保留列/Sprint 上下文入口。此前整卡起拖、MDXEditor 创建描述及串行写入机制继续保留。工作在 `main` 上更新用户指定的 `zhongqc/forge-lane` 仓库；早期无 remote 的记录仅描述初次初始化。
+
+### 2026-09-23 GitHub integration
+
+用户授权实现 GitHub 关联、事件同步和自动化三项，选择 GitHub App，明确取消无 webhook 轮询。新增独立数据表、持久队列、保守自动化和 UI；部署管理员按项目授权 installation ID。完成独立代码评审及针对性修复，37 项集成、5 项单元、18 项浏览器验证通过。真实 App 配置仍需部署凭据及可访问的 webhook URL；详情见 docs/github-integration.md。
