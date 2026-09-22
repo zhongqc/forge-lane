@@ -1,5 +1,5 @@
 import { matchesQuick } from '../../../../../packages/shared/src/filters';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
@@ -14,15 +14,10 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type CollisionDetection,
+  type KeyboardCoordinateGetter,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Search, SlidersHorizontal, X, ArrowUpRight } from 'lucide-react';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { GripVertical, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { runIssueCommand } from '../../lib/issue-mutations';
 import {
@@ -35,42 +30,22 @@ import {
   priorityLabels,
 } from '../../components/ui';
 import type { Issue, BoardData } from '../../../../../packages/shared/src/contracts';
-export function Card({
+function CardContent({
   issue,
   onOpen,
-  overlay = false,
-  readOnly = false,
+  handle,
 }: {
   issue: Issue;
-  onOpen: (i: Issue) => void;
-  overlay?: boolean;
-  readOnly?: boolean;
+  onOpen: (issue: Issue) => void;
+  handle?: React.ReactNode;
 }) {
-  const sortable = useSortable({ disabled: readOnly, id: issue.id, data: { statusId: issue.statusId } });
   return (
-    <article
-      ref={sortable.setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(sortable.transform),
-        transition: sortable.transition,
-        opacity: sortable.isDragging ? 0.22 : 1,
-        borderTop: sortable.isDragging ? '2px solid #7564ca' : undefined,
-      }}
-      className={`issue-card ${overlay ? 'drag-overlay' : ''}`}
-    >
+    <>
       <div className="card-top">
         <span className="issue-key">{issue.key}</span>
         <div className="card-top-right">
           <PriorityIcon priority={issue.priority} />
-          <button
-            className="drag-handle"
-            disabled={readOnly}
-            {...sortable.attributes}
-            {...sortable.listeners}
-            aria-label={`拖动 ${issue.key}`}
-          >
-            <GripVertical size={14} />
-          </button>
+          {handle}
         </div>
       </div>
       <button className="card-title" onClick={() => onOpen(issue)}>
@@ -87,6 +62,41 @@ export function Card({
           <Avatar actor={issue.assignee} small />
         </div>
       </div>
+    </>
+  );
+}
+export function Card({
+  issue,
+  onOpen,
+  readOnly = false,
+}: {
+  issue: Issue;
+  onOpen: (i: Issue) => void;
+  readOnly?: boolean;
+}) {
+  const sortable = useSortable({ disabled: readOnly, id: issue.id, data: { statusId: issue.statusId } });
+  return (
+    <article
+      ref={sortable.setNodeRef}
+      style={{ opacity: sortable.isDragging ? 0.25 : 1 }}
+      onPointerDown={(e) => sortable.listeners?.onPointerDown?.(e)}
+      className={`issue-card ${readOnly ? '' : 'draggable-card'}`}
+    >
+      <CardContent
+        issue={issue}
+        onOpen={onOpen}
+        handle={
+          <button
+            className="drag-handle"
+            disabled={readOnly}
+            {...sortable.attributes}
+            {...sortable.listeners}
+            aria-label={`拖动 ${issue.key}`}
+          >
+            <GripVertical size={16} />
+          </button>
+        }
+      />
     </article>
   );
 }
@@ -97,6 +107,7 @@ function Section({
   onOpen,
   onCreate,
   overId,
+  insertBefore,
   readOnly,
 }: {
   id: string;
@@ -105,6 +116,7 @@ function Section({
   onOpen: (i: Issue) => void;
   onCreate: (statusId: string) => void;
   overId?: string;
+  insertBefore?: string | null;
   readOnly: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -134,8 +146,16 @@ function Section({
       <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <div className="section-cards">
           {issues.map((i) => (
-            <Card readOnly={readOnly} key={i.id} issue={i} onOpen={onOpen} />
+            <div className="card-slot" key={i.id}>
+              {overId === id && insertBefore === i.id && (
+                <div className="drop-indicator" aria-label="放到这里" />
+              )}
+              <Card readOnly={readOnly} issue={i} onOpen={onOpen} />
+            </div>
           ))}
+          {overId === id && insertBefore === null && (
+            <div className="drop-indicator drop-indicator-end" aria-label="放到这里" />
+          )}
           {!issues.length && <div className="empty-drop">{isOver ? '松开放到这里' : '暂无事项'}</div>}
         </div>
       </SortableContext>
@@ -146,8 +166,67 @@ function Section({
   );
 }
 const collision: CollisionDetection = (args) => {
-  const hits = pointerWithin(args).filter((hit) => hit.id !== args.active.id);
+  const hits = pointerWithin(args);
+  // Prefer a card over its containing section. Stable DOM geometry avoids feedback loops.
+  const cards = hits.filter((hit) => !String(hit.id).startsWith('section:'));
+  if (cards.length) return cards;
+  const section = hits.find((hit) => String(hit.id).startsWith('section:'));
+  if (section && args.pointerCoordinates) {
+    const statusId = String(section.id).slice(8);
+    const nearby = args.droppableContainers
+      .filter(
+        (container) =>
+          !String(container.id).startsWith('section:') && container.data.current?.statusId === statusId,
+      )
+      .map((container) => ({ id: container.id, rect: args.droppableRects.get(container.id) }))
+      .filter((item) => item.rect !== undefined);
+    const y = args.pointerCoordinates.y;
+    const firstTop = Math.min(...nearby.map((item) => item.rect!.top));
+    const lastBottom = Math.max(...nearby.map((item) => item.rect!.bottom));
+    if (y >= firstTop && y <= lastBottom) {
+      nearby.sort(
+        (a, b) =>
+          Math.abs(y - a.rect!.top - a.rect!.height / 2) - Math.abs(y - b.rect!.top - b.rect!.height / 2),
+      );
+      if (nearby[0]) return [{ id: nearby[0].id }];
+    }
+  }
   return hits.length ? hits : args.pointerCoordinates ? [] : rectIntersection(args);
+};
+// Navigate explicit card/empty-section targets, excluding the current target. The generic
+// sortable getter can choose the current card again when nested sections share its bounds.
+const boardKeyboardCoordinates: KeyboardCoordinateGetter = (event, { context }) => {
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) return;
+  event.preventDefault();
+  const currentId = context.over?.id ?? context.active?.id;
+  const current = currentId ? context.droppableRects.get(currentId) : context.collisionRect;
+  if (!current) return;
+  const containers = context.droppableContainers.getEnabled();
+  const candidates = containers.flatMap((container) => {
+    if (container.id === currentId) return [];
+    if (
+      String(container.id).startsWith('section:') &&
+      containers.some(
+        (card) =>
+          !String(card.id).startsWith('section:') &&
+          card.data.current?.statusId === container.data.current?.statusId,
+      )
+    )
+      return [];
+    const rect = context.droppableRects.get(container.id);
+    if (!rect) return [];
+    const dx = rect.left + rect.width / 2 - current.left - current.width / 2;
+    const dy = rect.top + rect.height / 2 - current.top - current.height / 2;
+    const horizontal = event.code === 'ArrowLeft' || event.code === 'ArrowRight';
+    const forward = event.code === 'ArrowRight' || event.code === 'ArrowDown';
+    const distance = horizontal ? dx : dy;
+    if ((forward ? distance <= 1 : distance >= -1) || (!horizontal && Math.abs(dx) > current.width / 2))
+      return [];
+    return [{ rect, score: Math.abs(distance) + (horizontal ? Math.abs(dy) : Math.abs(dx)) * 2 }];
+  });
+  candidates.sort((a, b) => a.score - b.score);
+  const target = candidates[0]?.rect;
+  return target ? { x: target.left, y: target.top } : undefined;
 };
 export function BoardPage({
   data,
@@ -206,11 +285,50 @@ export function BoardPage({
   const [filters, setFilters] = useState(false);
   const [active, setActive] = useState<Issue | null>(null);
   const [target, setTarget] = useState<string>();
+  const [insertBefore, setInsertBefore] = useState<string | null>();
+  const pointer = useRef<{ x: number; y: number } | null>(null);
   const [projection, setProjection] = useState<Issue[] | null>(null);
   const [error, setError] = useState<unknown>();
+  const boardElement = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!active) return;
+    let frame = 0;
+    let previousTime = 0;
+    const velocity = (position: number, start: number, end: number) => {
+      const edge = Math.min(64, (end - start) / 4);
+      if (position < start + edge) return -16 * Math.max(0, 1 - (position - start) / edge);
+      if (position > end - edge) return 16 * Math.max(0, 1 - (end - position) / edge);
+      return 0;
+    };
+    const scroll = (time: number) => {
+      const element = boardElement.current;
+      const point = pointer.current;
+      const scale = previousTime ? Math.min((time - previousTime) / 16.67, 2) : 1;
+      previousTime = time;
+      if (element && point) {
+        const bounds = element.getBoundingClientRect();
+        const top = Math.max(bounds.top, 0);
+        const bottom = Math.min(bounds.bottom, window.innerHeight);
+        if (point.x >= bounds.left && point.x <= bounds.right && point.y >= top && point.y <= bottom) {
+          element.scrollLeft += velocity(point.x, bounds.left, bounds.right) * scale;
+          for (const column of element.querySelectorAll<HTMLElement>('.board-column')) {
+            const rect = column.getBoundingClientRect();
+            if (point.x >= rect.left && point.x <= rect.right) {
+              column.scrollTop +=
+                velocity(point.y, Math.max(rect.top, top), Math.min(rect.bottom, bottom)) * scale;
+              break;
+            }
+          }
+        }
+      }
+      frame = requestAnimationFrame(scroll);
+    };
+    frame = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(frame);
+  }, [active]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
   const onCreate = (statusId?: string) => {
     if (data.permissions.canWrite) create(statusId, scope === 'active' ? activeSprint?.id : undefined);
@@ -218,7 +336,7 @@ export function BoardPage({
   const activeSprint = data.sprints.find((s) => s.status === 'ACTIVE');
   const visible = useMemo(
     () =>
-      (projection ?? data.issues)
+      data.issues
         .filter((i) => ['STORY', 'TASK', 'BUG'].includes(i.type))
         .filter(
           (i) =>
@@ -235,7 +353,6 @@ export function BoardPage({
         )
         .filter((i) => matchesQuick(i, quick, actorId)),
     [
-      projection,
       data.issues,
       scope,
       activeSprint,
@@ -253,26 +370,37 @@ export function BoardPage({
     if (!active || !e.over) {
       setTarget(undefined);
       setProjection(null);
+      setInsertBefore(undefined);
       return;
     }
     const over = String(e.over.id);
     if (over === active.id) {
-      setTarget((projection ?? data.issues).find((i) => i.id === active.id)?.statusId);
+      setTarget(undefined);
+      setProjection(null);
+      setInsertBefore(undefined);
       return;
     }
     const statusId = over.startsWith('section:')
       ? over.slice(8)
-      : (projection ?? data.issues).find((i) => i.id === over)?.statusId;
+      : data.issues.find((i) => i.id === over)?.statusId;
     if (!statusId) return;
     setTarget(statusId);
-    const items = (projection ?? data.issues).filter((i) => i.id !== active.id);
-    const index = items.findIndex((i) => i.id === over);
+    const items = data.issues.filter((i) => i.id !== active.id);
+    const candidates = visible.filter((i) => i.id !== active.id && i.statusId === statusId);
     const translated = e.active.rect.current.translated;
-    const after =
-      index >= 0 && translated
-        ? translated.top + translated.height / 2 > e.over.rect.top + e.over.rect.height / 2
-        : false;
-    items.splice(index >= 0 ? index + (after ? 1 : 0) : items.length, 0, { ...active, statusId });
+    const y = pointer.current?.y ?? (translated ? translated.top + translated.height / 2 : 0);
+    let next: Issue | undefined;
+    if (over.startsWith('section:')) {
+      // Header means first position; whitespace below the last card means append.
+      if (y < e.over.rect.top + 42) next = candidates[0];
+    } else {
+      const index = candidates.findIndex((i) => i.id === over);
+      const after = pointer.current ? y > e.over.rect.top + e.over.rect.height / 2 : e.delta.y > 0;
+      next = candidates[index + (after ? 1 : 0)];
+    }
+    setInsertBefore(next?.id ?? null);
+    const index = next ? items.findIndex((i) => i.id === next.id) : -1;
+    items.splice(index >= 0 ? index : items.length, 0, { ...active, statusId });
     if (
       projection?.length === items.length &&
       items.every(
@@ -289,6 +417,8 @@ export function BoardPage({
     setActive(null);
     setTarget(undefined);
     setProjection(null);
+    setInsertBefore(undefined);
+    pointer.current = null;
     if (!moving || !e.over || !destination) return;
     const order = (projected ?? data.issues).filter(
       (i) =>
@@ -297,6 +427,19 @@ export function BoardPage({
         ['STORY', 'TASK', 'BUG'].includes(i.type),
     );
     const idx = order.findIndex((i) => i.id === moving.id);
+    const original = data.issues.filter(
+      (i) =>
+        i.statusId === moving.statusId &&
+        i.sprintId === moving.sprintId &&
+        ['STORY', 'TASK', 'BUG'].includes(i.type),
+    );
+    const originalIndex = original.findIndex((i) => i.id === moving.id);
+    if (
+      destination === moving.statusId &&
+      original[originalIndex - 1]?.id === order[idx - 1]?.id &&
+      original[originalIndex + 1]?.id === order[idx + 1]?.id
+    )
+      return;
     const column = data.columns.find((c) => c.statuses.some((s) => s.statusId === destination));
     if (!column) return;
     const before = data.issues.find((i) => i.id === moving.id)!;
@@ -481,21 +624,34 @@ export function BoardPage({
       <ErrorNotice error={error} />
       <DndContext
         sensors={sensors}
-        collisionDetection={collision}
+        autoScroll={false}
+        collisionDetection={(args) => {
+          pointer.current = args.pointerCoordinates;
+          return collision(args);
+        }}
         onDragStart={(e) => {
           if (!data.permissions.canWrite) return;
           setActive(data.issues.find((i) => i.id === e.active.id) ?? null);
           setProjection(null);
+          setInsertBefore(undefined);
+          const event = e.activatorEvent;
+          pointer.current =
+            'clientY' in event
+              ? { x: (event as PointerEvent).clientX, y: (event as PointerEvent).clientY }
+              : null;
         }}
         onDragMove={project}
+        onDragOver={project}
         onDragEnd={end}
         onDragCancel={() => {
           setActive(null);
           setProjection(null);
           setTarget(undefined);
+          setInsertBefore(undefined);
+          pointer.current = null;
         }}
       >
-        <div className="board-columns">
+        <div ref={boardElement} className={`board-columns ${active ? 'is-dragging' : ''}`}>
           {data.columns.map((col, index) => (
             <div className={`board-column column-${index}`} key={col.id}>
               <div className="column-heading">
@@ -524,6 +680,7 @@ export function BoardPage({
                     onOpen={onOpen}
                     onCreate={onCreate}
                     overId={target}
+                    insertBefore={insertBefore}
                     readOnly={!data.permissions.canWrite}
                   />
                 ) : null;
@@ -531,13 +688,11 @@ export function BoardPage({
             </div>
           ))}
         </div>
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {active && (
-            <div className="overlay-card">
-              <span>{active.key}</span>
-              <strong>{active.title}</strong>
-              <ArrowUpRight size={16} />
-            </div>
+            <article className="issue-card drag-preview">
+              <CardContent issue={active} onOpen={() => {}} handle={<GripVertical size={16} />} />
+            </article>
           )}
         </DragOverlay>
       </DndContext>

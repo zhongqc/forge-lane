@@ -59,6 +59,18 @@ test('500 issue board renders, remains interactive and persists a move', async (
   expect((await move).ok()).toBeTruthy();
   const dragMs = Date.now() - dragStart;
   await expect(target.getByRole('button', { name: '性能事项 1', exact: true })).toBeVisible();
+  const sourceColumn = page.locator('.board-column').first();
+  const sourceCard = sourceColumn.locator('.issue-card').first();
+  const sourceBounds = await sourceCard.boundingBox();
+  const columnBounds = await sourceColumn.boundingBox();
+  if (!sourceBounds || !columnBounds) throw new Error('Scroll bounds missing');
+  await page.mouse.move(sourceBounds.x + 45, sourceBounds.y + 45);
+  await page.mouse.down();
+  await page.mouse.move(columnBounds.x + 60, columnBounds.y + columnBounds.height - 20, { steps: 15 });
+  await expect.poll(() => sourceColumn.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(page.locator('.drag-preview')).toHaveCount(0);
   expect(errors).toEqual([]);
   await info.attach('500-issue-metrics', {
     body: JSON.stringify({ apiMs: apiTimes, renderMs, dragIncludingRequestMs: dragMs }, null, 2),

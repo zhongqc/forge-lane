@@ -2334,3 +2334,82 @@ button:disabled {
     overflow: auto;
   }
 }
+
+/* Keep hit areas stationary while dragging; insertion cues do not affect layout. */
+.draggable-card {
+  cursor: grab;
+  touch-action: none;
+}
+.draggable-card .card-title {
+  cursor: inherit;
+}
+.is-dragging,
+.is-dragging * {
+  cursor: grabbing !important;
+}
+.card-slot {
+  position: relative;
+}
+.drop-indicator {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px #efecff;
+}
+.drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.section-cards {
+  position: relative;
+}
+.drop-indicator-end {
+  top: auto;
+  bottom: -5px;
+}
+.drag-preview {
+  cursor: grabbing;
+  box-shadow: 0 14px 32px #27204730;
+  border-color: var(--accent);
+  transform: rotate(1deg);
+}
+.create-description {
+  margin-top: 20px;
+}
+.create-description h3 {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.create-description h3 span {
+  font-weight: normal;
+  margin-left: 6px;
+}
+.create-description .editor-content {
+  min-height: 160px;
+  max-height: 32vh;
+  overflow-y: auto;
+}
+.create-description > p {
+  font-size: 11px;
+  margin: 9px 0;
+}
+.create-issue-form > .modal-footer {
+  position: sticky;
+  bottom: -24px;
+  background: white;
+  z-index: 2;
+  padding-bottom: 20px;
+  margin-bottom: -20px;
+}
