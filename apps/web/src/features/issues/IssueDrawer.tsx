@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { MentionTextarea } from '../mentions/Mentions';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useCallback, useState, useRef, useEffect, Suspense, lazy } from 'react';
@@ -93,6 +94,14 @@ export function IssueDrawer({
     queryFn: () => api<Comment[]>(`/issues/${issue!.id}/comments`),
     enabled: !!issue,
   });
+  const routeLocation = useLocation();
+  useEffect(() => {
+    if (!routeLocation.hash.startsWith('#comment-')) return;
+    requestAnimationFrame(() => {
+      setTab('comments');
+      document.getElementById(routeLocation.hash.slice(1))?.scrollIntoView({ block: 'center' });
+    });
+  }, [routeLocation.hash, comments]);
   const onDirty = useCallback((v: boolean) => setDirty(v), []);
   function saved(i: Issue) {
     qc.setQueryData(['issue', issueKey], i);
@@ -167,6 +176,10 @@ export function IssueDrawer({
           className="issue-drawer"
           aria-describedby={undefined}
           onEscapeKeyDown={(e) => {
+            if (document.querySelector('.mention-menu')) {
+              e.preventDefault();
+              return;
+            }
             if (dirty) {
               e.preventDefault();
               close();
@@ -601,7 +614,18 @@ export function IssueDrawer({
           </div>
           <div className="markdown">
             {revision ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                skipHtml
+                components={{
+                  a: ({ href, children }) =>
+                    /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
+                      <span className="mention-chip">{children}</span>
+                    ) : (
+                      <a href={href}>{children}</a>
+                    ),
+                }}
+              >
                 {revision.markdown || '此版本没有描述。'}
               </ReactMarkdown>
             ) : (
@@ -699,7 +723,7 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
     <>
       <div className="comments">
         {comments.map((c) => (
-          <div className="comment" key={c.id}>
+          <div className="comment" id={`comment-${c.id}`} key={c.id}>
             <Avatar actor={c.actor} small />
             <div>
               <strong>{c.actor.name}</strong>
@@ -715,7 +739,18 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
                 {c.deletedAt ? (
                   '评论已删除'
                 ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    skipHtml
+                    components={{
+                      a: ({ href, children }) =>
+                        /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
+                          <span className="mention-chip">{children}</span>
+                        ) : (
+                          <a href={href}>{children}</a>
+                        ),
+                    }}
+                  >
                     {c.content}
                   </ReactMarkdown>
                 )}
@@ -751,9 +786,10 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
         ))}
       </div>
       <fieldset disabled={readOnly || busy} className="comment-composer">
-        <textarea
+        <MentionTextarea
+          projectId={issue.projectId}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onTextChange={setText}
           placeholder={edit ? '编辑评论…' : '分享进展、提出问题，或留下你的想法…'}
           aria-label="评论内容"
           onKeyDown={(e) => {
@@ -804,7 +840,18 @@ function ExecutionActivity({ activity }: { activity: Activity }) {
           : (outcomes[status] ?? '结束了执行')}
       {summary && (
         <div className="markdown">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            skipHtml
+            components={{
+              a: ({ href, children }) =>
+                /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
+                  <span className="mention-chip">{children}</span>
+                ) : (
+                  <a href={href}>{children}</a>
+                ),
+            }}
+          >
             {summary}
           </ReactMarkdown>
         </div>

@@ -31,7 +31,13 @@ export function Modal({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
-        <Dialog.Content className={`modal ${wide ? 'modal-wide' : ''}`} aria-describedby={undefined}>
+        <Dialog.Content
+          onEscapeKeyDown={(e) => {
+            if (document.querySelector('.mention-menu')) e.preventDefault();
+          }}
+          className={`modal ${wide ? 'modal-wide' : ''}`}
+          aria-describedby={undefined}
+        >
           <header>
             <Dialog.Title>{title}</Dialog.Title>
             <Dialog.Close className="icon-button" aria-label="关闭">

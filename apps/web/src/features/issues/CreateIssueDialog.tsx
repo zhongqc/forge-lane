@@ -171,6 +171,7 @@ export function CreateIssueDialog({
             </h3>
             <Suspense fallback={<p className="muted">正在加载编辑器…</p>}>
               <MarkdownComposer
+                projectId={data.project.id}
                 key={editorKey}
                 text={description}
                 onChange={setDescription}

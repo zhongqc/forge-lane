@@ -114,3 +114,7 @@ forge run list --project APP --status RUNNING --all --json
 | 7      | 网络、服务端或响应错误       |
 
 成功数据写 stdout，错误写 stderr。`--json` 下错误包含 `error.code`、`error.message` 和可用的 `error.details`。
+
+## 在 Markdown 中提及成员
+
+通过 `forge member list --project APP --json` 查询成员 ID，在描述或评论文件中使用 `[@显示名](/mentions/成员UUID)`。服务端按 ID 校验项目访问权限；保存新增的有效提及会产生通知。纯文本 `@姓名` 和代码示例不会触发通知，自己及同一内容中的重复提及不会重复通知。适用于 `issue create/update/comment` 的文件输入。

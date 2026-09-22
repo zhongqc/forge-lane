@@ -105,3 +105,31 @@ export interface Comment {
   createdAt: string;
   deletedAt: string | null;
 }
+
+export interface SprintOverviewIssue {
+  id: string;
+  key: string;
+  title: string;
+  type: IssueType;
+  statusName: string;
+  done: boolean;
+  assigneeId: string | null;
+  assigneeName: string;
+  estimate: number | null;
+}
+export interface SprintMemberPoints {
+  actorId: string | null;
+  name: string;
+  issues: number;
+  unestimated: number;
+  total: number;
+  completed: number;
+  remaining: number;
+}
+export interface SprintOverview {
+  sprint: Sprint;
+  snapshotAt: string | null;
+  completeSnapshot: boolean;
+  issues: SprintOverviewIssue[];
+  members: SprintMemberPoints[];
+}

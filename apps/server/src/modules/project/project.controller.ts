@@ -1,3 +1,4 @@
+import { NotificationService } from '../notification/notification.service.js';
 import { ApiBody } from '@nestjs/swagger';
 import {
   Body,
@@ -19,7 +20,13 @@ import { parse } from '../../common/validation.js';
 @Controller('api/projects')
 @UseGuards(SessionGuard)
 export class ProjectController {
-  constructor(@Inject(ProjectService) private service: ProjectService) {}
+  constructor(
+    @Inject(ProjectService) private service: ProjectService,
+    @Inject(NotificationService) private notifications: NotificationService,
+  ) {}
+  @Get(':id/mention-members') mentionMembers(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.notifications.members(r.actorContext, id);
+  }
   @Get() list(@Req() r: AuthRequest) {
     return this.service.list(r.actorContext);
   }

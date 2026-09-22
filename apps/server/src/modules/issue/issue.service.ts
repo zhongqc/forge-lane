@@ -1,3 +1,4 @@
+import { NotificationService } from '../notification/notification.service.js';
 import { Injectable, Inject } from '@nestjs/common';
 import { Db } from '../../common/db.js';
 import { CommandService } from '../../common/command.service.js';
@@ -13,6 +14,7 @@ import type { CreateIssueDto, UpdateIssueDto, IssueFieldsDto, CommentDto } from 
 export class IssueService {
   constructor(
     @Inject(Db) private db: Db,
+    @Inject(NotificationService) private notifications: NotificationService,
     @Inject(CommandService) private commands: CommandService,
     @Inject(AccessService) private access: AccessService,
     @Inject(ActivityRepository) private activity: ActivityRepository,
@@ -101,6 +103,7 @@ export class IssueService {
       await tx.descriptionRevision.create({
         data: { issueId: i.id, actorId: c.actorId, version: 1, markdown: i.description },
       });
+      await this.notifications.sync(tx, c, i.id, projectId, '', i.description, 1);
       await this.activity.append(tx, c, projectId, i.id, 'CREATED', { title: i.title, type: i.type }, 1);
       return this.repo.get(tx, i.id);
     });
@@ -147,6 +150,15 @@ export class IssueService {
         });
       }
       if (changes.description) {
+        await this.notifications.sync(
+          tx,
+          c,
+          id,
+          before.projectId,
+          before.description,
+          fields.description!,
+          version + 1,
+        );
         const rev = await tx.descriptionRevision.create({
           data: { issueId: id, actorId: c.actorId, version: version + 1, markdown: fields.description! },
         });
@@ -266,12 +278,14 @@ export class IssueService {
     return this.commands.run(c, `comment:${id}`, key, input, async (tx) => {
       if (!remove && !input.content.trim()) fail(422, '评论不能为空');
       let comment;
+      let previousContent = '';
       if (commentId) {
         const old = await tx.comment.findFirst({ where: { id: commentId, issueId: id } });
         if (!old) fail(404, '评论不存在');
         if (old.actorId !== c.actorId) fail(403, '只能编辑自己的评论');
         if (old.version !== input.version) conflict();
         if (old.deletedAt) fail(422, '评论已删除');
+        previousContent = old.content;
         await tx.commentRevision.create({ data: { commentId, version: old.version, content: old.content } });
         comment = await tx.comment.update({
           where: { id: commentId },
@@ -285,6 +299,16 @@ export class IssueService {
         comment = await tx.comment.create({
           data: { issueId: id, actorId: c.actorId, content: input.content },
         });
+      await this.notifications.sync(
+        tx,
+        c,
+        id,
+        issue.projectId,
+        previousContent,
+        comment.content,
+        comment.version,
+        comment.id,
+      );
       await this.activity.append(
         tx,
         c,

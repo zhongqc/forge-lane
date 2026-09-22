@@ -1525,13 +1525,13 @@ a {
   font-size: 11px;
   min-height: 79px;
 }
-.comment-composer > div {
+.comment-composer > div:not(.mention-input) {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 9px 10px;
 }
-.comment-composer > div > span {
+.comment-composer > div:not(.mention-input) > span {
   font-size: 9px;
   color: #b4b9c4;
   margin-right: auto;
@@ -2736,5 +2736,209 @@ button:disabled {
 @media (max-width: 600px) {
   .github-rule-fields {
     grid-template-columns: 1fr;
+  }
+}
+
+.mention-input {
+  position: relative;
+}
+.mention-input textarea {
+  width: 100%;
+}
+.mention-menu {
+  position: absolute;
+  z-index: 80;
+  left: 12px;
+  bottom: 8px;
+  transform: translateY(100%);
+  min-width: 240px;
+  max-width: min(360px, 85vw);
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface, white);
+  box-shadow: 0 8px 24px #0002;
+}
+.mention-menu button {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+}
+.mention-menu button[aria-selected='true'],
+.mention-menu button:hover {
+  background: #edf2ff;
+}
+.mention-menu small {
+  display: block;
+  opacity: 0.6;
+  font-size: 11px;
+}
+.mention-menu p {
+  padding: 8px;
+  font-size: 12px;
+}
+.mention-member-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.mention-chip,
+.editor-content a[href^='/mentions/'] {
+  color: #525aca;
+  background: #ededff;
+  border-radius: 4px;
+  padding: 1px 4px;
+  text-decoration: none;
+}
+.notification-bell {
+  position: relative;
+  margin-right: 14px;
+}
+.notification-bell > span {
+  position: absolute;
+  top: -5px;
+  right: -9px;
+  border-radius: 10px;
+  background: #6266d9;
+  color: white;
+  padding: 1px 4px;
+  font-size: 10px;
+}
+.notification-inbox {
+  z-index: 100;
+  width: min(400px, 92vw);
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, white);
+  box-shadow: 0 12px 40px #0002;
+}
+.notification-inbox header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.notification-items {
+  max-height: 55vh;
+  overflow: auto;
+}
+.notification-items > button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px;
+  text-align: left;
+  background: transparent;
+  margin: 4px 0;
+}
+.notification-items > button.unread {
+  background: #f1f2fe;
+}
+.notification-items > button:hover {
+  background: #e9ecff;
+}
+.notification-items strong {
+  font-size: 12px;
+}
+.notification-items span {
+  font-size: 12px;
+}
+.notification-items small {
+  opacity: 0.55;
+}
+
+.comment-composer {
+  overflow: visible;
+}
+
+.sprint-points-panel {
+  margin: 12px 0;
+  border: 1px solid var(--border, #e5e7ef);
+  border-radius: 10px;
+  background: #fff;
+}
+.sprint-points-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  text-align: left;
+}
+.sprint-points-toggle > :last-child {
+  margin-left: auto;
+}
+.sprint-overview-content {
+  padding: 12px 16px;
+}
+.sprint-points-scroll {
+  overflow-x: auto;
+}
+.sprint-points-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  margin: 12px 0;
+}
+.sprint-points-table th,
+.sprint-points-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f5;
+  text-align: right;
+  white-space: nowrap;
+}
+.sprint-points-table th:first-child {
+  text-align: left;
+}
+.sprint-points-table thead {
+  color: #747c92;
+  font-size: 12px;
+}
+.sprint-history-warning {
+  padding: 12px;
+  background: #fff7df;
+  color: #866516;
+  border-radius: 8px;
+  line-height: 1.7;
+}
+.sprint-history-issues {
+  margin-top: 20px;
+}
+.sprint-history-issues > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f5;
+  text-align: left;
+}
+.sprint-history-issues > button strong {
+  flex: 1;
+  min-width: 100px;
+  overflow-wrap: anywhere;
+}
+.sprint-history-issues > button span {
+  font-size: 12px;
+  color: #747c92;
+}
+.sprint-history-issues > button .sprint-done {
+  color: #278254;
+}
+@media (max-width: 700px) {
+  .sprint-points-toggle {
+    flex-wrap: wrap;
+  }
+  .sprint-history-issues > button {
+    flex-wrap: wrap;
   }
 }

@@ -1,3 +1,4 @@
+import { SprintOverviewService } from './sprint-overview.service.js';
 import { ApiBody } from '@nestjs/swagger';
 import {
   Body,
@@ -19,7 +20,13 @@ import { parse } from '../../common/validation.js';
 @Controller('api')
 @UseGuards(SessionGuard)
 export class SprintController {
-  constructor(@Inject(SprintService) private service: SprintService) {}
+  constructor(
+    @Inject(SprintService) private service: SprintService,
+    @Inject(SprintOverviewService) private overviewService: SprintOverviewService,
+  ) {}
+  @Get('sprints/:id/overview') overview(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.overviewService.get(r.actorContext, id);
+  }
   @Get('projects/:id/sprints') list(@Req() r: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.list(r.actorContext, id);
   }

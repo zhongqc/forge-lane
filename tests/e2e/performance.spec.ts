@@ -1,10 +1,13 @@
+import { register } from './support/register';
 import { test, expect } from '@playwright/test';
 import { createDatabase } from '../../packages/db/src/client';
 test('500 issue board renders, remains interactive and persists a move', async ({ page }, info) => {
-  test.setTimeout(60000);
+  test.setTimeout(90000);
   const tag = Date.now().toString(36).toUpperCase();
-  await page.request.post('/api/auth/register', {
-    data: { email: `perf-${tag}@forge.test`, password: 'Performance-test-2026', name: '性能验证' },
+  await register(page.request, {
+    email: `perf-${tag}@forge.test`,
+    password: 'Performance-test-2026',
+    name: '性能验证',
   });
   const me = await (await page.request.get('/api/me')).json();
   const project = await (

@@ -50,6 +50,8 @@ model User {
   createdAt DateTime @default(now())
 }
 model Actor {
+  receivedMentions MentionNotification[] @relation("MentionRecipient")
+  sentMentions MentionNotification[] @relation("MentionSender")
   apiTokens ApiToken[]
   executions IssueExecution[]
   id String @id @default(uuid()) @db.Uuid
@@ -153,6 +155,7 @@ model BoardColumnStatus {
   @@unique([projectId,statusId])
 }
 model Sprint {
+  snapshot SprintSnapshot?
   id String @id @default(uuid()) @db.Uuid
   projectId String @db.Uuid
   project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
@@ -167,6 +170,7 @@ model Sprint {
   @@unique([projectId,id])
 }
 model Issue {
+  mentions MentionNotification[]
   executions IssueExecution[]
   id String @id @default(uuid()) @db.Uuid
   projectId String @db.Uuid
@@ -416,4 +420,48 @@ model IssueExecution {
   finishedAt DateTime?
   @@index([issueId,createdAt])
   @@index([projectId,status,leaseExpiresAt])
+}
+
+model MentionNotification {
+  id String @id @default(uuid()) @db.Uuid
+  issueId String @db.Uuid
+  issue Issue @relation(fields:[issueId],references:[id],onDelete:Cascade)
+  recipientId String @db.Uuid
+  recipient Actor @relation("MentionRecipient",fields:[recipientId],references:[id])
+  senderId String @db.Uuid
+  sender Actor @relation("MentionSender",fields:[senderId],references:[id])
+  senderName String
+  source String
+  sourceId String @db.Uuid
+  sourceVersion Int
+  commentId String? @db.Uuid
+  createdAt DateTime @default(now())
+  readAt DateTime?
+  cancelledAt DateTime?
+  deliveries NotificationDelivery[]
+  @@unique([source,sourceId,sourceVersion,recipientId])
+  @@index([recipientId,createdAt,id])
+}
+model NotificationDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  notificationId String @db.Uuid
+  notification MentionNotification @relation(fields:[notificationId],references:[id],onDelete:Cascade)
+  channel String @default("EMAIL")
+  status String @default("PENDING")
+  attempts Int @default(0)
+  retryAt DateTime @default(now())
+  leaseToken String?
+  leaseUntil DateTime?
+  lastError String?
+  sentAt DateTime?
+  createdAt DateTime @default(now())
+  @@unique([notificationId,channel])
+  @@index([status,retryAt,leaseUntil])
+}
+
+model SprintSnapshot {
+  sprintId String @id @db.Uuid
+  sprint Sprint @relation(fields:[sprintId],references:[id],onDelete:Cascade)
+  capturedAt DateTime @default(now())
+  payload Json
 }

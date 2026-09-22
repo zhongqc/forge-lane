@@ -36,6 +36,8 @@ let configDir: string;
 let server: string;
 let project: Project;
 let actorId: string;
+let mentionedActorId: string;
+let recipient: ReturnType<typeof request.agent>;
 
 async function cli<T = Record<string, unknown>>(args: string[], options: Invocation = {}): Promise<T> {
   const env = { ...process.env };
@@ -92,6 +94,20 @@ beforeAll(async () => {
       .send({ name: 'CLI integration', key: `E${Date.now().toString(36).toUpperCase()}` })
       .expect(201)
   ).body;
+  recipient = request.agent(app.getHttpServer());
+  const recipientEmail = `cli-mention-${randomUUID()}@forge.test`;
+  await recipient
+    .post('/api/auth/register')
+    .send({ email: recipientEmail, password, name: 'CLI 被提及成员' })
+    .expect(201);
+  mentionedActorId = (await recipient.get('/api/me').expect(200)).body.actor.id;
+  const workspaceId = (await session.get('/api/me').expect(200)).body.workspace.id;
+  await session.post('/api/workspace/members').send({ email: recipientEmail, role: 'MEMBER' }).expect(201);
+  await session
+    .post(`/api/projects/${project.id}/members`)
+    .send({ actorId: mentionedActorId, role: 'MEMBER' })
+    .expect(201);
+  await recipient.post('/api/workspaces/select').send({ workspaceId }).expect(201);
 }, 30000);
 
 afterAll(async () => {
@@ -187,10 +203,23 @@ it('runs the local agent workflow through real CLI subprocesses and revokes its 
   issue = await cli<Issue>(['issue', 'update', issue.key, '--title', 'Later title']);
   expect(await cli<Issue>(updateArgs)).toEqual(firstUpdate);
   expect((await cli<Issue>(['issue', 'show', issue.key])).title).toBe('Later title');
-  const comment = '执行计划\n- 完成并验证\n';
+  const comment = `执行计划\n- 完成并验证\n\n[@CLI 被提及成员](/mentions/${mentionedActorId})`;
   const commentFile = join(root, 'comment.md');
   await writeFile(commentFile, comment);
-  expect((await cli(['issue', 'comment', issue.key, '--body-file', commentFile])).content).toBe(comment);
+  const mentionArgs = [
+    'issue',
+    'comment',
+    issue.key,
+    '--body-file',
+    commentFile,
+    '--idempotency-key',
+    randomUUID(),
+  ];
+  expect((await cli(mentionArgs)).content).toBe(comment);
+  await cli(mentionArgs);
+  const inbox = (await recipient.get('/api/notifications').expect(200)).body;
+  expect(inbox.items.filter((item: { issueKey: string }) => item.issueKey === issue.key)).toHaveLength(1);
+  expect(inbox.unreadCount).toBe(1);
   const context = await cli<{ issue: Issue; comments: { content: string }[]; statuses: Status[] }>([
     'issue',
     'context',

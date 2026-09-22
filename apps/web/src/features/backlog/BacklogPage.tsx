@@ -1,3 +1,4 @@
+import { SprintHistory, CurrentSprintPoints } from '../sprints/SprintOverview';
 import Decimal from 'decimal.js';
 import {
   DndContext,
@@ -158,12 +159,14 @@ export function BacklogPage({
           <p>把下一步排清楚，让团队从容出发。</p>
         </div>
         <div className="heading-actions">
+          <SprintHistory data={data} />
           <button className="secondary" disabled={!data.permissions.canWrite} onClick={() => setCreate(true)}>
             <CalendarDays size={15} />
             创建 Sprint
           </button>
         </div>
       </div>
+      <CurrentSprintPoints data={data} />
       <ErrorNotice error={error} />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drop}>
         <div className="backlog-groups">

@@ -22,12 +22,15 @@ import {
   StrikeThroughSupSubToggles,
 } from '@mdxeditor/editor';
 import '@mdxeditor/editor/style.css';
+import { MentionProject, mentionsPlugin } from '../mentions/RichMentions';
 export default function MarkdownComposer({
+  projectId,
   text,
   onChange,
   busy = false,
   onSubmit,
 }: {
+  projectId: string;
   text: string;
   onChange: (value: string) => void;
   busy?: boolean;
@@ -75,53 +78,56 @@ export default function MarkdownComposer({
         }
       }}
     >
-      <MDXEditor
-        readOnly={busy}
-        ref={editor}
-        markdown={text}
-        onChange={(v, initialNormalization) => {
-          if (!initialNormalization) onChange(v);
-        }}
-        contentEditableClassName="markdown editor-content"
-        placeholder="写下背景、方案或验收标准…"
-        plugins={[
-          headingsPlugin(),
-          listsPlugin(),
-          quotePlugin(),
-          linkPlugin(),
-          linkDialogPlugin(),
-          codeBlockPlugin({ defaultCodeBlockLanguage: 'text' }),
-          codeMirrorPlugin({
-            codeBlockLanguages: {
-              text: '纯文本',
-              js: 'JavaScript',
-              ts: 'TypeScript',
-              typescript: 'TypeScript',
-              javascript: 'JavaScript',
-              json: 'JSON',
-              bash: 'Shell',
-              python: 'Python',
-            },
-          }),
-          markdownShortcutPlugin(),
-          toolbarPlugin({
-            toolbarContents: () => (
-              <>
-                <UndoRedo />
-                <Separator />
-                <BlockTypeSelect />
-                <Separator />
-                <BoldItalicUnderlineToggles options={['Bold', 'Italic']} />
-                <StrikeThroughSupSubToggles options={['Strikethrough']} />
-                <Separator />
-                <ListsToggle />
-                <CreateLink />
-                <InsertCodeBlock />
-              </>
-            ),
-          }),
-        ]}
-      />
+      <MentionProject.Provider value={projectId}>
+        <MDXEditor
+          readOnly={busy}
+          ref={editor}
+          markdown={text}
+          onChange={(v, initialNormalization) => {
+            if (!initialNormalization) onChange(v);
+          }}
+          contentEditableClassName="markdown editor-content"
+          placeholder="写下背景、方案或验收标准…"
+          plugins={[
+            headingsPlugin(),
+            listsPlugin(),
+            quotePlugin(),
+            linkPlugin(),
+            mentionsPlugin(),
+            linkDialogPlugin(),
+            codeBlockPlugin({ defaultCodeBlockLanguage: 'text' }),
+            codeMirrorPlugin({
+              codeBlockLanguages: {
+                text: '纯文本',
+                js: 'JavaScript',
+                ts: 'TypeScript',
+                typescript: 'TypeScript',
+                javascript: 'JavaScript',
+                json: 'JSON',
+                bash: 'Shell',
+                python: 'Python',
+              },
+            }),
+            markdownShortcutPlugin(),
+            toolbarPlugin({
+              toolbarContents: () => (
+                <>
+                  <UndoRedo />
+                  <Separator />
+                  <BlockTypeSelect />
+                  <Separator />
+                  <BoldItalicUnderlineToggles options={['Bold', 'Italic']} />
+                  <StrikeThroughSupSubToggles options={['Strikethrough']} />
+                  <Separator />
+                  <ListsToggle />
+                  <CreateLink />
+                  <InsertCodeBlock />
+                </>
+              ),
+            }),
+          ]}
+        />
+      </MentionProject.Provider>
       <Popover.Root open={slash} onOpenChange={setSlash}>
         <Popover.Anchor asChild>
           <span className="slash-anchor" />

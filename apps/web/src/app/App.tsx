@@ -1,3 +1,4 @@
+import { NotificationInbox } from '../features/mentions/NotificationInbox';
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -285,6 +286,7 @@ export function App() {
           <span className="breadcrumb-slash">/</span>
           <span>{nav.find((n) => n.id === view)?.name}</span>
           <div className="toolbar-spacer" />
+          <NotificationInbox />
           <button
             className="primary global-create"
             aria-label="创建事项"

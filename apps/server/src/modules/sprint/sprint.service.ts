@@ -1,3 +1,4 @@
+import { captureSprint } from './sprint-overview.service.js';
 import Decimal from 'decimal.js';
 import { IssueRepository } from '../issue/issue.repository.js';
 import type { PlanningMoveDto } from './sprint.dto.js';
@@ -79,6 +80,12 @@ export class SprintService {
           where: { id: destination, projectId: s.projectId, status: 'PLANNED' },
         });
         if (!target || destination === id) fail(422, '请选择同项目的下一计划 Sprint');
+      }
+      if (action === 'complete') {
+        const payload = await captureSprint(tx, id, s.projectId, c.workspaceId);
+        await tx.sprintSnapshot.create({
+          data: { sprintId: id, payload: JSON.parse(JSON.stringify(payload)) },
+        });
       }
       const issues = await tx.issue.findMany({
         where: {

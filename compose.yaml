@@ -6,6 +6,12 @@ services:
     environment:
       DATABASE_URL: postgresql://forge:${POSTGRES_PASSWORD:-forge_local}@postgres:5432/forge
       APP_URL: ${APP_URL:-http://localhost:3001}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}

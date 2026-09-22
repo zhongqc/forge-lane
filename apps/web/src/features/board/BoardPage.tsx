@@ -1,3 +1,4 @@
+import { CurrentSprintPoints } from '../sprints/SprintOverview';
 import { matchesQuick } from '../../../../../packages/shared/src/filters';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -630,6 +631,7 @@ export function BoardPage({
           onChange={setScope}
         />
       </div>
+      <CurrentSprintPoints data={data} />
       {filters && (
         <div className="expanded-filters">
           {[

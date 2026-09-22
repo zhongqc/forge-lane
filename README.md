@@ -75,3 +75,13 @@ API 文档：http://localhost:3001/api/docs，JSON：http://localhost:3001/api/d
 ## 本地 CLI / Codex
 
 `pnpm forge --help` 查看全部命令。支持事项读写、描述与评论、历史与开发关联、任务领取及执行结果回写。登录后即可让本地 Codex 通过 CLI 获取任务，开发仍在本机进行。安装、命令和 skill 模板见 [CLI 使用说明](packages/cli/README.md)。
+
+## @ 提及与通知
+
+描述（含创建）和评论支持 @ 选择项目成员。保存后通知本次新提及的人，自己、重复提及和代码示例不产生通知。站内通知保留未读状态，邮件通过 SMTP 异步投递；飞书等渠道仅预留接口。部署配置与投递边界见 [通知说明](docs/notifications.md)。
+
+## Sprint 历史与成员估点
+
+看板和 Backlog 的当前 Sprint 下可展开“成员 Story Points”，查看每人的总点数、已完成点数、剩余点数、事项数及未估点事项；未分配单列，按 Story / Task / Bug 统计，子任务不重复计点，统计不受看板筛选影响。
+
+Backlog 右上角“历史 Sprint”可查看已完成迭代。新完成的 Sprint 会在未完成事项迁出前保存不可变快照，后续修改事项不会改写历史点数。旧 Sprint 没有快照时明确标注数据不完整，仅展示目前仍关联的事项及当前字段。

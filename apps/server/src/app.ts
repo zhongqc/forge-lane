@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { NotificationModule } from './modules/notification/notification.module.js';
 import 'dotenv/config';
 import { Module, Controller, Get, Inject } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -27,7 +28,16 @@ class HealthController {
 @Module({
   controllers: [WorkspaceController, HealthController],
   providers: [WorkspaceService],
-  imports: [DatabaseModule, AuthModule, ProjectModule, IssueModule, SprintModule, BoardModule, GitHubModule],
+  imports: [
+    NotificationModule,
+    DatabaseModule,
+    AuthModule,
+    ProjectModule,
+    IssueModule,
+    SprintModule,
+    BoardModule,
+    GitHubModule,
+  ],
 })
 class AppModule {}
 export async function createApp() {
