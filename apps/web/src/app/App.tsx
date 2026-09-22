@@ -348,7 +348,6 @@ export function App() {
                   data={board.data}
                   actorId={me.data!.actor.id}
                   onOpen={open}
-                  onCreate={(statusId, sprintId) => setCreateIssue({ statusId, sprintId })}
                 />
               ) : view === 'backlog' ? (
                 <BacklogPage

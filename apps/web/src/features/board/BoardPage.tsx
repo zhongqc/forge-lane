@@ -17,7 +17,7 @@ import {
   type KeyboardCoordinateGetter,
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { runIssueCommand } from '../../lib/issue-mutations';
 import {
@@ -146,7 +146,6 @@ function BoardColumn({
   insertBefore,
   readOnly,
   onOpen,
-  onCreate,
 }: {
   column: BoardData['columns'][number];
   index: number;
@@ -158,7 +157,6 @@ function BoardColumn({
   insertBefore?: string | null;
   readOnly: boolean;
   onOpen: (issue: Issue) => void;
-  onCreate: (statusId?: string) => void;
 }) {
   const receiving = !!active && sourceColumnId !== column.id;
   const { setNodeRef } = useDroppable({
@@ -175,14 +173,6 @@ function BoardColumn({
         <span className="column-marker" />
         <h2>{column.name}</h2>
         <span>{issues.length}</span>
-        <button
-          className="icon-button"
-          disabled={readOnly}
-          aria-label={`在${column.name}新建事项`}
-          onClick={() => onCreate(column.statuses[0]?.statusId)}
-        >
-          <Plus size={16} />
-        </button>
       </div>
       <div ref={setNodeRef} className="column-scroll">
         <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -299,12 +289,10 @@ const boardKeyboardCoordinates: KeyboardCoordinateGetter = (event, { context }) 
 export function BoardPage({
   data,
   onOpen,
-  onCreate: create,
   actorId,
 }: {
   data: BoardData;
   onOpen: (i: Issue) => void;
-  onCreate: (statusId?: string, sprintId?: string) => void;
   actorId: string;
 }) {
   const qc = useQueryClient();
@@ -399,9 +387,6 @@ export function BoardPage({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates }),
   );
-  const onCreate = (statusId?: string) => {
-    if (data.permissions.canWrite) create(statusId, scope === 'active' ? activeSprint?.id : undefined);
-  };
   const activeSprint = data.sprints.find((s) => s.status === 'ACTIVE');
   const visible = useMemo(
     () =>
@@ -759,7 +744,6 @@ export function BoardPage({
               insertBefore={insertBefore}
               readOnly={!data.permissions.canWrite}
               onOpen={onOpen}
-              onCreate={onCreate}
             />
           ))}
         </div>

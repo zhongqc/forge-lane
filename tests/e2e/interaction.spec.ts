@@ -345,10 +345,8 @@ test('every card surface can start dragging without opening details', async ({ p
   await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
 });
 
-test('global creation is available across views while column quick-create preselects status', async ({
-  page,
-}) => {
-  const { project, board } = await fixture(page);
+test('global creation is available across views without board creation buttons', async ({ page }) => {
+  const { project } = await fixture(page);
   for (const view of ['board', 'backlog', 'issues', 'epics', 'settings']) {
     await page.goto(`/projects/${project.key}/${view}`);
     const create = page.locator('.topbar').getByRole('button', { name: '创建事项', exact: true });
@@ -364,13 +362,7 @@ test('global creation is available across views while column quick-create presel
     await page.getByRole('button', { name: '取消', exact: true }).click();
   }
   await page.goto(`/projects/${project.key}/board`);
-  await page.getByRole('button', { name: '在开发中新建事项', exact: true }).click();
-  await expect(page.getByRole('button', { name: '状态', exact: true })).toContainText('In Progress');
-  await page.getByPlaceholder('需要完成什么？').fill('列内快捷创建');
-  const response = page.waitForResponse(
-    (r) => r.url().endsWith(`/projects/${project.id}/issues`) && r.request().method() === 'POST',
+  await expect(page.locator('.board-column').getByRole('button', { name: /新建事项|添加事项/ })).toHaveCount(
+    0,
   );
-  await page.getByRole('button', { name: '创建事项', exact: true }).click();
-  const created = await (await response).json();
-  expect(created.statusId).toBe(board.columns[1].statuses[0].statusId);
 });
