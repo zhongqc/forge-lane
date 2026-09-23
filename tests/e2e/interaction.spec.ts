@@ -396,4 +396,21 @@ test('board fills remaining height after resizing and expanding filters', async 
       if (expanded) await page.getByRole('button', { name: '筛选', exact: true }).click();
     }
   }
+  await page.setViewportSize({ width: 1050, height: 400 });
+  await expect
+    .poll(async () => {
+      const bounds = await page.locator('.column-scroll').first().boundingBox();
+      return Math.round(bounds?.height ?? 0);
+    })
+    .toBeGreaterThanOrEqual(300);
+  expect(
+    await page.locator('.main-content').evaluate((element) => element.scrollHeight > element.clientHeight),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect
+    .poll(async () => {
+      const bounds = await page.locator('.column-scroll').first().boundingBox();
+      return Math.round(900 - bounds!.y - bounds!.height);
+    })
+    .toBe(16);
 });
