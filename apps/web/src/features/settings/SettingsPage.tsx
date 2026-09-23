@@ -43,9 +43,7 @@ export function SettingsPage({ data }: { data: BoardData }) {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">A SPACE THAT WORKS FOR YOU</div>
           <h1>项目设置</h1>
-          <p>保持流程简单，让团队协作更自然。</p>
         </div>
       </div>
       <ErrorNotice error={error} />

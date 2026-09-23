@@ -578,12 +578,10 @@ export function BoardPage({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">MAKE PROGRESS, TOGETHER</div>
           <h1>
             团队看板{' '}
             <span>{data.issues.filter((i) => ['STORY', 'TASK', 'BUG'].includes(i.type)).length}</span>
           </h1>
-          <p>把重要的事，推进到下一步。</p>
         </div>
       </div>
       <div className="board-toolbar">

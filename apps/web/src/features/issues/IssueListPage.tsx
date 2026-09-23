@@ -30,11 +30,9 @@ export function IssueListPage({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{epics ? 'CONNECT WORK TO PURPOSE' : 'EVERY DETAIL, IN VIEW'}</div>
           <h1>
             {epics ? 'Epics' : '所有事项'} <span>{issues.length}</span>
           </h1>
-          <p>{epics ? '把长期目标拆解为可交付的工作。' : '每一项工作，都能找到清晰的归属。'}</p>
         </div>
       </div>
       <div className="list-toolbar">
