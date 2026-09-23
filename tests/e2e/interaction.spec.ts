@@ -370,3 +370,30 @@ test('global creation is available across views without board creation buttons',
     0,
   );
 });
+
+test('board fills remaining height after resizing and expanding filters', async ({ page }) => {
+  await fixture(page);
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1050, height: 720 },
+    { width: 390, height: 844 },
+    { width: 1440, height: 1000 },
+  ]) {
+    await page.setViewportSize(viewport);
+    for (const expanded of [false, true]) {
+      if (expanded) await page.getByRole('button', { name: '筛选', exact: true }).click();
+      await expect
+        .poll(async () => {
+          const bounds = await page.locator('.column-scroll').first().boundingBox();
+          return bounds ? Math.round(viewport.height - bounds.y - bounds.height) : -1;
+        })
+        .toBe(viewport.width <= 760 ? 14 : 16);
+      const bounds = await page.locator('.column-scroll').first().boundingBox();
+      expect(bounds!.height).toBeGreaterThan(200);
+      expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
+        viewport.height,
+      );
+      if (expanded) await page.getByRole('button', { name: '筛选', exact: true }).click();
+    }
+  }
+});

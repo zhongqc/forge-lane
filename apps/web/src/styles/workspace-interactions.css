@@ -1,8 +1,6 @@
 /* Desktop usability pass: readable card metadata and independent column scrolling. */
 @media (min-width: 761px) {
   .board-columns {
-    height: calc(100vh - 268px);
-    min-height: 440px;
     align-items: stretch;
     overflow-y: hidden;
   }
@@ -417,10 +415,6 @@ button:disabled {
   font-size: 12px;
 }
 @media (max-width: 760px) {
-  .board-column {
-    height: max(400px, calc(100dvh - 300px));
-    min-height: 0;
-  }
   .global-create kbd {
     display: none;
   }
@@ -433,4 +427,35 @@ button:disabled {
   .topbar > .breadcrumb-slash:first-of-type {
     display: none;
   }
+}
+
+/* Let the board consume the space left by the actual header and filters. */
+.main-shell:has(.board-columns) {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.main-shell:has(.board-columns) > :is(.topbar, .mobile-nav) {
+  flex-shrink: 0;
+}
+.main-content:has(.board-columns) {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.main-content:has(.board-columns) > * {
+  flex-shrink: 0;
+}
+.main-content > .board-columns {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 0;
+  align-items: stretch;
+  overflow-y: hidden;
+}
+.board-column {
+  min-height: 0;
 }
