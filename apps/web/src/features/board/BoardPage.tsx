@@ -312,8 +312,7 @@ export function BoardPage({
       <div className="page-heading">
         <div>
           <h1>
-            团队看板{' '}
-            <span>{data.issues.filter((i) => ['STORY', 'TASK', 'BUG'].includes(i.type)).length}</span>
+            看板 <span>{data.issues.filter((i) => ['STORY', 'TASK', 'BUG'].includes(i.type)).length}</span>
           </h1>
         </div>
       </div>

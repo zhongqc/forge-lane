@@ -33,7 +33,7 @@ interface Me {
   email: string;
 }
 const nav = [
-  { id: 'board', name: '团队看板', icon: LayoutDashboard },
+  { id: 'board', name: '看板', icon: LayoutDashboard },
   { id: 'backlog', name: 'Backlog', icon: ListTodo },
   { id: 'issues', name: '所有事项', icon: List },
   { id: 'epics', name: 'Epics', icon: Zap },
