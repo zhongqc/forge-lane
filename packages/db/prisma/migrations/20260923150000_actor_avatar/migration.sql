@@ -1,0 +1,1 @@
+ALTER TABLE "Actor" ADD COLUMN "avatarKey" TEXT;

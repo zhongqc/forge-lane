@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../../packages/db/src/client.js';
-const actorSelect = { id: true, name: true, color: true, kind: true } as const;
+const actorSelect = { id: true, name: true, color: true, avatarKey: true, kind: true } as const;
 export const issueInclude = {
   project: { select: { key: true } },
   status: true,

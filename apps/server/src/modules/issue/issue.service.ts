@@ -261,7 +261,7 @@ export class IssueService {
     await this.access.issue(c, id);
     return this.db.client.comment.findMany({
       where: { issueId: id },
-      include: { actor: { select: { id: true, name: true, color: true, kind: true } } },
+      include: { actor: { select: { id: true, name: true, color: true, avatarKey: true, kind: true } } },
       orderBy: { createdAt: 'asc' },
       take: 200,
     });

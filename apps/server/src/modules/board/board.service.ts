@@ -44,7 +44,7 @@ export class BoardService {
             { memberships: { some: { workspaceId: c.workspaceId, role: 'ADMIN' } } },
           ],
         },
-        select: { id: true, name: true, color: true, kind: true },
+        select: { id: true, name: true, color: true, avatarKey: true, kind: true },
       }),
       this.db.client.label.findMany({ where: { projectId: id } }),
     ]);

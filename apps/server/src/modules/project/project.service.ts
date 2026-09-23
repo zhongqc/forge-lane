@@ -114,7 +114,9 @@ export class ProjectService {
     const p = await this.access.project(c, id);
     const memberships = await this.repo.db.client.workspaceMember.findMany({
       where: { workspaceId: p.workspaceId },
-      include: { actor: { select: { id: true, name: true, color: true, kind: true, active: true } } },
+      include: {
+        actor: { select: { id: true, name: true, color: true, avatarKey: true, kind: true, active: true } },
+      },
     });
     const projectMembers = await this.repo.db.client.projectMember.findMany({ where: { projectId: id } });
     return memberships.map((m) => ({

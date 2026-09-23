@@ -1,6 +1,9 @@
 import 'reflect-metadata';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import 'dotenv/config';
+import { config } from 'dotenv';
+import { StorageModule } from './modules/storage/storage.module.js';
+config({ path: process.env.OSS_ENV_FILE || '.env.oss', quiet: true });
 import { Module, Controller, Get, Inject } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -31,6 +34,7 @@ class HealthController {
   providers: [WorkspaceService],
   imports: [
     NotificationModule,
+    StorageModule,
     DatabaseModule,
     AuthModule,
     ProjectModule,

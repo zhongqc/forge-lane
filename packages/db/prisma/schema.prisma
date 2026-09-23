@@ -58,6 +58,7 @@ model Actor {
   kind ActorKind @default(HUMAN)
   name String
   color String @default("#5b5bd6")
+  avatarKey String?
   userId String? @unique @db.Uuid
   user User? @relation(fields: [userId], references: [id])
   active Boolean @default(true)

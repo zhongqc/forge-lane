@@ -1,4 +1,4 @@
-import * as Popover from '@radix-ui/react-popover';
+import { AccountMenu } from '../components/AccountMenu';
 import { NotificationInbox } from '../features/mentions/NotificationInbox';
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,10 +13,9 @@ import {
   Plus,
   ChevronDown,
   PanelLeftClose,
-  LogOut,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
-import { SelectField, Avatar, ErrorNotice, Loading, Modal } from '../components/ui';
+import { SelectField, ErrorNotice, Loading, Modal } from '../components/ui';
 import { LoginPage } from './LoginPage';
 import { BoardPage } from '../features/board/BoardPage';
 import { BacklogPage } from '../features/backlog/BacklogPage';
@@ -255,32 +254,7 @@ export function App() {
           >
             <Plus size={15} /> 创建 <kbd>C</kbd>
           </button>
-          <Popover.Root>
-            <Popover.Trigger asChild>
-              <button className="account-trigger" aria-label="账号菜单" title={me.data?.actor.name}>
-                <Avatar actor={me.data?.actor} />
-              </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content className="account-menu" align="end" sideOffset={8} aria-label="账号信息">
-                <strong>{me.data?.actor.name}</strong>
-                <span>{me.data?.email}</span>
-                <small>{me.data?.role === 'ADMIN' ? '工作区管理员' : '团队成员'}</small>
-                <button
-                  className="account-logout"
-                  onClick={() =>
-                    void api('/auth/logout', 'POST').then(() => {
-                      qc.clear();
-                      void navigate('/');
-                      window.location.reload();
-                    })
-                  }
-                >
-                  <LogOut size={15} /> 退出登录
-                </button>
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+          <AccountMenu account={me.data} />
         </header>
         {selected && (
           <nav className="mobile-nav" aria-label="项目导航">

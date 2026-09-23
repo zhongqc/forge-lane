@@ -156,7 +156,7 @@ export function Avatar({
   actor,
   small = false,
 }: {
-  actor?: Pick<Actor, 'name' | 'color'> | null;
+  actor?: (Pick<Actor, 'name' | 'color'> & Partial<Pick<Actor, 'id' | 'avatarKey'>>) | null;
   small?: boolean;
 }) {
   return (
@@ -165,6 +165,16 @@ export function Avatar({
       title={actor?.name ?? '未分配'}
       style={actor ? { background: actor.color } : undefined}
     >
+      {actor?.id && actor.avatarKey ? (
+        <img
+          key={actor.avatarKey}
+          src={`/api/actors/${actor.id}/avatar?v=${encodeURIComponent(actor.avatarKey)}`}
+          alt=""
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : null}
       {actor?.name.slice(0, 1) ?? '–'}
     </span>
   );

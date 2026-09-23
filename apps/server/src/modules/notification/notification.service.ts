@@ -25,7 +25,7 @@ export class NotificationService {
     await this.access.project(c, projectId);
     const actors = await this.db.client.actor.findMany({
       where: accessibleActor(c.workspaceId, projectId),
-      select: { id: true, name: true, color: true, user: { select: { email: true } } },
+      select: { id: true, name: true, color: true, avatarKey: true, user: { select: { email: true } } },
       orderBy: [{ name: 'asc' }, { id: 'asc' }],
     });
     return actors.map(({ user, ...actor }) => ({ ...actor, ...(user ? { email: user.email } : {}) }));

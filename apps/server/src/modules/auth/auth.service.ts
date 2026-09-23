@@ -59,7 +59,13 @@ export class AuthService {
     const membership = actor.memberships.find((m) => m.workspaceId === workspaceId) ?? actor.memberships[0];
     if (!membership) fail(403, '没有工作区访问权限');
     return {
-      actor: { id: actor.id, name: actor.name, color: actor.color, kind: actor.kind },
+      actor: {
+        id: actor.id,
+        name: actor.name,
+        color: actor.color,
+        kind: actor.kind,
+        avatarKey: actor.avatarKey,
+      },
       workspace: membership.workspace,
       role: membership.role,
       email: session.user.email,
@@ -77,7 +83,13 @@ export class AuthService {
     });
     if (!member) fail(401, '令牌已失效', 'UNAUTHENTICATED');
     return {
-      actor: { id: token.actor.id, name: token.actor.name, color: token.actor.color, kind: token.actor.kind },
+      actor: {
+        id: token.actor.id,
+        name: token.actor.name,
+        color: token.actor.color,
+        kind: token.actor.kind,
+        avatarKey: token.actor.avatarKey,
+      },
       workspace: token.workspace,
       token: {
         id: token.id,

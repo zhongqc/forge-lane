@@ -456,9 +456,11 @@ test('avatar filters support multiple assignees and stay in sync with the dropdo
     const second = page.getByRole('button', { name: '筛选负责人：头像成员', exact: true });
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await expect(second).toHaveCSS('opacity', '0.4');
     await expect(page.getByRole('button', { name: '其他成员事项', exact: true })).not.toBeVisible();
     await second.click();
     await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await expect(second).toHaveCSS('opacity', '1');
     await expect(page.getByRole('button', { name: '其他成员事项', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '负责人的事项', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '验证交互可靠性', exact: true })).not.toBeVisible();
@@ -498,4 +500,43 @@ test('account menu is available in the header on desktop and mobile', async ({ p
   await page.getByRole('button', { name: '退出登录', exact: true }).click();
   expect((await logout).ok()).toBeTruthy();
   await expect(page.getByRole('button', { name: '登录工作区', exact: true })).toBeVisible();
+});
+
+test('avatar upload shows errors and refreshes the account photo after retry', async ({ page }) => {
+  await fixture(page);
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
+    'base64',
+  );
+  let uploaded = false;
+  let attempts = 0;
+  await page.route('**/api/me', async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    if (uploaded) body.actor.avatarKey = `avatars/${body.actor.id}/test.webp`;
+    await route.fulfill({ response, json: body });
+  });
+  await page.route('**/api/actors/*/avatar?*', (route) =>
+    route.fulfill({ contentType: 'image/png', body: png }),
+  );
+  await page.route('**/api/me/avatar', async (route) => {
+    expect(route.request().headers()['content-type']).toContain('multipart/form-data');
+    attempts++;
+    uploaded = attempts > 1;
+    await route.fulfill({
+      status: uploaded ? 201 : 502,
+      json: uploaded ? {} : { message: '头像上传失败，请稍后重试' },
+    });
+  });
+  await page.getByRole('button', { name: '账号菜单', exact: true }).click();
+  const input = page.getByLabel('选择头像', { exact: true });
+  await input.setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('头像上传失败，请稍后重试', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '更换头像', exact: true })).toBeEnabled();
+  await input.setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: png });
+  await expect(page.getByText('头像上传失败，请稍后重试', { exact: true })).not.toBeVisible();
+  const avatar = page.locator('.account-trigger img');
+  await expect(avatar).toBeVisible();
+  await expect.poll(() => avatar.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+  expect(attempts).toBe(2);
 });

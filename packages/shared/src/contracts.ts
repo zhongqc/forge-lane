@@ -6,6 +6,7 @@ export interface Actor {
   id: string;
   name: string;
   color: string;
+  avatarKey?: string | null;
   kind: string;
 }
 export interface ActorContext {
