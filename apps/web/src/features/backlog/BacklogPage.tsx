@@ -154,9 +154,7 @@ export function BacklogPage({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">PLAN WITH INTENTION</div>
           <h1>Backlog</h1>
-          <p>把下一步排清楚，让团队从容出发。</p>
         </div>
         <div className="heading-actions">
           <SprintHistory data={data} />
