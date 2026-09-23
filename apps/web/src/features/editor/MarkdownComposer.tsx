@@ -29,12 +29,14 @@ export default function MarkdownComposer({
   onChange,
   busy = false,
   onSubmit,
+  compact = false,
 }: {
   projectId: string;
   text: string;
   onChange: (value: string) => void;
   busy?: boolean;
   onSubmit?: () => void;
+  compact?: boolean;
 }) {
   const editor = useRef<MDXEditorMethods>(null);
   const composing = useRef(false);
@@ -45,8 +47,8 @@ export default function MarkdownComposer({
     // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       role="group"
-      aria-label="描述编辑器"
-      className="editor-wrap"
+      aria-label={compact ? '评论编辑器' : '描述编辑器'}
+      className={compact ? 'editor-wrap editor-compact' : 'editor-wrap'}
       onCompositionStart={() => {
         composing.current = true;
       }}
@@ -80,6 +82,11 @@ export default function MarkdownComposer({
     >
       <MentionProject.Provider value={projectId}>
         <MDXEditor
+          translation={(key, defaultValue, values) =>
+            key === 'contentArea.editableMarkdown' && compact
+              ? '评论内容'
+              : defaultValue.replace(/{{(.*?)}}/g, (match, name: string) => String(values?.[name] ?? match))
+          }
           readOnly={busy}
           ref={editor}
           markdown={text}
@@ -87,7 +94,7 @@ export default function MarkdownComposer({
             if (!initialNormalization) onChange(v);
           }}
           contentEditableClassName="markdown editor-content"
-          placeholder="写下背景、方案或验收标准…"
+          placeholder={compact ? '写评论，输入 @ 提及成员…' : '写下背景、方案或验收标准…'}
           plugins={[
             headingsPlugin(),
             listsPlugin(),
@@ -112,12 +119,16 @@ export default function MarkdownComposer({
             toolbarPlugin({
               toolbarContents: () => (
                 <>
-                  <UndoRedo />
-                  <Separator />
+                  {!compact && (
+                    <>
+                      <UndoRedo />
+                      <Separator />
+                    </>
+                  )}
                   <BlockTypeSelect />
                   <Separator />
                   <BoldItalicUnderlineToggles options={['Bold', 'Italic']} />
-                  <StrikeThroughSupSubToggles options={['Strikethrough']} />
+                  {!compact && <StrikeThroughSupSubToggles options={['Strikethrough']} />}
                   <Separator />
                   <ListsToggle />
                   <CreateLink />

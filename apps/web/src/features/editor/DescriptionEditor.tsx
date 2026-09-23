@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { runIssueCommand } from '../../lib/issue-mutations';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MarkdownComposer from './MarkdownComposer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -47,6 +47,8 @@ export function DescriptionEditor({
   onDirty: (dirty: boolean) => void;
 }) {
   const qc = useQueryClient();
+  const boundary = useRef<HTMLDivElement>(null);
+  const saving = useRef(false);
   const existing = drafts.get(issue.id);
   const [editing, setEditing] = useState(!!existing);
   const [text, setText] = useState(existing?.text ?? issue.description);
@@ -72,7 +74,12 @@ export function DescriptionEditor({
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
   async function save(version?: number) {
-    if (busy) return;
+    if (saving.current || readOnly) return;
+    if (text === issue.description) {
+      setEditing(false);
+      return;
+    }
+    saving.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -101,9 +108,28 @@ export function DescriptionEditor({
         }
       } else setError(e);
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (readOnly || !editing || busy || latest || error) return;
+    const outside = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || boundary.current?.contains(target)) return;
+      const dialog = target.closest('[role=dialog]');
+      if (dialog && dialog !== boundary.current?.closest('[role=dialog]')) return;
+      if (
+        target.closest(
+          '[data-radix-popper-content-wrapper], .mention-menu, .mdxeditor-popup-container, [aria-label="关闭详情"]',
+        )
+      )
+        return;
+      void save();
+    };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  });
   function cancel() {
     drafts.delete(issue.id);
     setText(issue.description);
@@ -155,7 +181,24 @@ export function DescriptionEditor({
       </div>
     );
   return (
-    <div>
+    <div
+      ref={boundary}
+      onBlur={(event) => {
+        const target = event.relatedTarget;
+        if (!target || !(target instanceof Element)) return;
+        if (event.currentTarget.contains(target)) return;
+        const dialog = target.closest('[role=dialog]');
+        if (dialog && dialog !== event.currentTarget.closest('[role=dialog]')) return;
+        // Editor portals (links, block selectors, mentions) remain part of editing.
+        if (
+          target.closest(
+            '[data-radix-popper-content-wrapper], .mention-menu, .mdxeditor-popup-container, [aria-label="关闭详情"]',
+          )
+        )
+          return;
+        if (!busy && !latest && !error) void save();
+      }}
+    >
       <MarkdownComposer
         projectId={issue.projectId}
         key={`${issue.id}:${base}`}
@@ -166,7 +209,7 @@ export function DescriptionEditor({
       />
       <ErrorNotice error={error} />
       <div className="editor-footer">
-        <span>{busy ? '正在保存…' : '支持 Markdown 快捷输入 · ⌘ Enter 保存'}</span>
+        <span>{busy ? '正在保存…' : '离开编辑区自动保存 · ⌘ / Ctrl Enter 保存'}</span>
         <button className="secondary small" onClick={cancel} disabled={busy}>
           <X size={13} />
           取消

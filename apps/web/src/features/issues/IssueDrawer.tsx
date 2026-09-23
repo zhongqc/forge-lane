@@ -1,4 +1,3 @@
-import { MentionTextarea } from '../mentions/Mentions';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -40,6 +39,8 @@ import type {
   Priority,
   IssueType,
 } from '../../../../../packages/shared/src/contracts';
+const MarkdownComposer = lazy(() => import('../editor/MarkdownComposer'));
+const commentDrafts = new Map<string, string>();
 const DescriptionEditor = lazy(() =>
   import('../editor/DescriptionEditor').then((m) => ({ default: m.DescriptionEditor })),
 );
@@ -503,7 +504,7 @@ export function IssueDrawer({
                   </button>
                 </div>
                 {tab === 'comments' ? (
-                  <Comments readOnly={!canWrite} issue={issue} comments={comments ?? []} />
+                  <Comments key={issue.id} readOnly={!canWrite} issue={issue} comments={comments ?? []} />
                 ) : (
                   <div className="activity-list">
                     {[...(activities?.items ?? []), ...moreActivities].map((a) => (
@@ -696,19 +697,25 @@ function ActivityChanges({ activity, board }: { activity: Activity; board: Board
 }
 function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comment[]; readOnly: boolean }) {
   const qc = useQueryClient();
-  const [text, setText] = useState('');
+  const me = qc.getQueryData<{ actor: { id: string } }>(['me']);
+  const draftKey = `${me?.actor.id}:${issue.id}`;
+  const [text, setText] = useState(() => commentDrafts.get(draftKey) ?? '');
+  const [generation, setGeneration] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const [edit, setEdit] = useState<Comment | null>(null);
   async function send() {
-    if (!text.trim()) return;
+    if (!text.trim() || busy || readOnly) return;
+    setError(null);
     setBusy(true);
     try {
       await api(`/issues/${issue.id}/comments${edit ? `/${edit.id}` : ''}`, edit ? 'PATCH' : 'POST', {
         content: text,
         ...(edit ? { version: edit.version } : {}),
       });
-      setText('');
+      if (!edit) commentDrafts.delete(draftKey);
+      setText(edit ? (commentDrafts.get(draftKey) ?? '') : '');
+      setGeneration((n) => n + 1);
       setEdit(null);
       void qc.invalidateQueries({ queryKey: ['comments', issue.id] });
       void qc.invalidateQueries({ queryKey: ['activity', issue.id] });
@@ -718,7 +725,6 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
       setBusy(false);
     }
   }
-  const me = qc.getQueryData<{ actor: { id: string } }>(['me']);
   return (
     <>
       <div className="comments">
@@ -755,10 +761,13 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
                   </ReactMarkdown>
                 )}
               </div>
-              {!c.deletedAt && c.actorId === me?.actor.id && (
+              {!readOnly && !c.deletedAt && c.actorId === me?.actor.id && (
                 <div className="comment-actions">
                   <button
                     onClick={() => {
+                      if (busy) return;
+                      setGeneration((n) => n + 1);
+                      setError(null);
                       setEdit(c);
                       setText(c.content);
                     }}
@@ -786,24 +795,33 @@ function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comme
         ))}
       </div>
       <fieldset disabled={readOnly || busy} className="comment-composer">
-        <MentionTextarea
-          projectId={issue.projectId}
-          value={text}
-          onTextChange={setText}
-          placeholder={edit ? '编辑评论…' : '分享进展、提出问题，或留下你的想法…'}
-          aria-label="评论内容"
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !e.nativeEvent.isComposing) void send();
-          }}
-        />
+        <Suspense fallback={<Loading />}>
+          <MarkdownComposer
+            key={`${draftKey}:${edit?.id ?? 'new'}:${generation}`}
+            projectId={issue.projectId}
+            compact
+            text={text}
+            onChange={(value) => {
+              setText(value);
+              if (!edit) {
+                if (value.trim()) commentDrafts.set(draftKey, value);
+                else commentDrafts.delete(draftKey);
+              }
+            }}
+            busy={readOnly || busy}
+            onSubmit={() => void send()}
+          />
+        </Suspense>
         <div>
-          <span>支持 Markdown · ⌘ Enter 发送</span>
+          <span>离开后保留草稿 · ⌘ / Ctrl Enter 发布</span>
           {edit && (
             <button
               className="text-button"
               onClick={() => {
                 setEdit(null);
-                setText('');
+                setText(commentDrafts.get(draftKey) ?? '');
+                setGeneration((n) => n + 1);
+                setError(null);
               }}
             >
               取消编辑

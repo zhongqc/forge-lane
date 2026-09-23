@@ -16,7 +16,7 @@ test('create, edit, describe and move an issue without losing board context', as
   await page.getByText('体验编辑与拖拽', { exact: true }).click();
   await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
   await page.getByRole('button', { name: '编辑描述' }).click();
-  await page.locator('[contenteditable="true"]').fill('中文描述测试');
+  await page.getByRole('textbox', { name: 'editable markdown', exact: true }).fill('中文描述测试');
   await page.getByRole('button', { name: '保存描述' }).click();
   await expect(page.getByText('中文描述测试', { exact: true })).toBeVisible();
   await page.reload();

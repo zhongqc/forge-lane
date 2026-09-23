@@ -1525,13 +1525,13 @@ a {
   font-size: 11px;
   min-height: 79px;
 }
-.comment-composer > div:not(.mention-input) {
+.comment-composer > div:not(.editor-wrap):not(.loading) {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 9px 10px;
 }
-.comment-composer > div:not(.mention-input) > span {
+.comment-composer > div:not(.editor-wrap):not(.loading) > span {
   font-size: 9px;
   color: #b4b9c4;
   margin-right: auto;
@@ -2941,4 +2941,16 @@ button:disabled {
   .sprint-history-issues > button {
     flex-wrap: wrap;
   }
+}
+
+.comment-composer .editor-wrap {
+  width: 100%;
+}
+.editor-compact .editor-content {
+  min-height: 100px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.editor-content a[href^='/mentions/'] {
+  cursor: default;
 }

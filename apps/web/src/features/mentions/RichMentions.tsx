@@ -8,6 +8,11 @@ import {
   $createTextNode,
   KEY_DOWN_COMMAND,
   COMMAND_PRIORITY_HIGH,
+  TextNode,
+  BLUR_COMMAND,
+  $isElementNode,
+  $addUpdateTag,
+  HISTORY_PUSH_TAG,
 } from 'lexical';
 import { $createLinkNode, $isLinkNode } from '@lexical/link';
 import { useMembers, trigger, Menu, keyboard, type Member } from './Mentions';
@@ -57,6 +62,21 @@ function RichMentions() {
   }, [editor]);
   useEffect(() => {
     if (!editor) return;
+    // Token text is selected/deleted as one unit, including mentions imported from Markdown.
+    const unregisterToken = editor.registerNodeTransform(TextNode, (node) => {
+      const parent = node.getParent();
+      if ($isLinkNode(parent) && /^\/mentions\/[0-9a-f-]{36}$/i.test(parent.getURL()) && !node.isToken()) {
+        node.setMode('token');
+      }
+    });
+    const unregisterBlur = editor.registerCommand(
+      BLUR_COMMAND,
+      () => {
+        setSearch(null);
+        return false;
+      },
+      COMMAND_PRIORITY_HIGH,
+    );
     const unregister = editor.registerUpdateListener(({ editorState }) =>
       editorState.read(() => {
         const found = editor.isComposing() ? null : inspect();
@@ -78,6 +98,31 @@ function RichMentions() {
     const unregisterKey = editor.registerCommand(
       KEY_DOWN_COMMAND,
       (e) => {
+        if (!e.isComposing && !editor.isComposing() && (e.key === 'Backspace' || e.key === 'Delete')) {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection) && selection.isCollapsed()) {
+            const node = selection.anchor.getNode();
+            const offset = selection.anchor.offset;
+            const backward = e.key === 'Backspace';
+            const parent = node.getParent();
+            const candidate = $isLinkNode(parent)
+              ? parent
+              : $isElementNode(node)
+                ? node.getChildAtIndex(backward ? offset - 1 : offset)
+                : backward && offset === 0
+                  ? node.getPreviousSibling()
+                  : !backward && offset === node.getTextContentSize()
+                    ? node.getNextSibling()
+                    : null;
+            if ($isLinkNode(candidate) && /^\/mentions\/[0-9a-f-]{36}$/i.test(candidate.getURL())) {
+              e.preventDefault();
+              $addUpdateTag(HISTORY_PUSH_TAG);
+              candidate.selectPrevious();
+              candidate.remove();
+              return true;
+            }
+          }
+        }
         if (
           e.metaKey ||
           e.ctrlKey ||
@@ -102,6 +147,8 @@ function RichMentions() {
       COMMAND_PRIORITY_HIGH,
     );
     return () => {
+      unregisterToken();
+      unregisterBlur();
       unregister();
       unregisterKey();
     };
