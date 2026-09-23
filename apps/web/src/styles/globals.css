@@ -1,8 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 :root {
   font-family:
-    'DM Sans',
-    'Noto Sans SC',
+    'Inter Variable',
+    'Noto Sans SC Variable',
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
@@ -447,7 +446,7 @@ a {
 }
 .page-heading h1 {
   font-size: 26px;
-  font-weight: 650;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 11px;
