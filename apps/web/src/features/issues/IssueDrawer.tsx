@@ -356,10 +356,11 @@ export function IssueDrawer({
                       />
                     </div>
                     <div>
-                      <span className="property-label">估点</span>
+                      <span className="property-label">Story Points</span>
                       {estimateEditing ? (
                         <input
                           className="estimate-input"
+                          aria-label="Story Points"
                           autoFocus
                           type="number"
                           min="0"
@@ -658,7 +659,7 @@ function ActivityChanges({ activity, board }: { activity: Activity; board: Board
     assigneeId: '负责人',
     sprintId: 'Sprint',
     epicId: 'Epic',
-    estimate: '估点',
+    estimate: 'Story Points',
     type: '类型',
     labels: '标签',
     boardOrder: '排序',
