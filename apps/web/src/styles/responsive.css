@@ -21,7 +21,7 @@
     grid-template-columns: repeat(4, minmax(220px, 1fr));
   }
   .topbar {
-    padding: 0 22px;
+    padding: 0 12px 0 22px;
   }
   .board-toolbar {
     flex-wrap: wrap;
@@ -44,7 +44,7 @@
     padding: 14px 12px;
   }
   .topbar {
-    padding: 0 15px;
+    padding: 0 9px 0 15px;
     height: 48px;
   }
   .topbar-hint {
