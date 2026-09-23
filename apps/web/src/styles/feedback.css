@@ -1,0 +1,42 @@
+.error-notice {
+  background: #fff3f1;
+  border: 1px solid #f2d7d2;
+  color: #bd6f65;
+  padding: 10px 13px;
+  font-size: 11px;
+  line-height: 1.7;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+.success-notice {
+  background: #f0f8f4;
+  color: #599179;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 11px;
+}
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 200px;
+  color: #aaa8bc;
+  font-size: 12px;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+.fatal-state {
+  max-width: 500px;
+  margin: 100px auto;
+}
+.tooltip {
+  background: #363341;
+  color: white;
+  font-size: 10px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  z-index: 200;
+}

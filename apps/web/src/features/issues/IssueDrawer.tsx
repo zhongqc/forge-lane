@@ -1,22 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownView } from '../../components/MarkdownView';
+import { IssueComments } from './IssueComments';
+import { IssueActivity } from './IssueActivity';
 import { useCallback, useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Dialog from '@radix-ui/react-dialog';
-import {
-  X,
-  Link2,
-  Plus,
-  ArrowUpRight,
-  MessageSquare,
-  History,
-  Check,
-  Send,
-  PenLine,
-  Trash2,
-} from 'lucide-react';
-import { IssueDevelopment, GitHubActivity, githubUrl } from '../github/IssueDevelopment';
+import { X, Link2, Plus, ArrowUpRight, MessageSquare, History, Check, PenLine } from 'lucide-react';
+import { IssueDevelopment } from '../github/IssueDevelopment';
 import { api } from '../../lib/api';
 import { useIssueMutation } from '../../lib/issue-mutations';
 import {
@@ -39,8 +29,6 @@ import type {
   Priority,
   IssueType,
 } from '../../../../../packages/shared/src/contracts';
-const MarkdownComposer = lazy(() => import('../editor/MarkdownComposer'));
-const commentDrafts = new Map<string, string>();
 const DescriptionEditor = lazy(() =>
   import('../editor/DescriptionEditor').then((m) => ({ default: m.DescriptionEditor })),
 );
@@ -505,39 +493,17 @@ export function IssueDrawer({
                   </button>
                 </div>
                 {tab === 'comments' ? (
-                  <Comments key={issue.id} readOnly={!canWrite} issue={issue} comments={comments ?? []} />
+                  <IssueComments
+                    key={issue.id}
+                    readOnly={!canWrite}
+                    issue={issue}
+                    comments={comments ?? []}
+                  />
                 ) : (
-                  <div className="activity-list">
-                    {[...(activities?.items ?? []), ...moreActivities].map((a) => (
-                      <div key={a.id} className="activity-item">
-                        <span className="activity-dot" />
-                        <div>
-                          {a.type.startsWith('GITHUB_') ? (
-                            <GitHubActivity activity={a} />
-                          ) : a.type.startsWith('EXECUTION_') ? (
-                            <ExecutionActivity activity={a} />
-                          ) : (
-                            <>
-                              <strong>{a.actorNameSnapshot}</strong>{' '}
-                              {a.type === 'CREATED'
-                                ? '创建了事项'
-                                : a.type === 'MOVED'
-                                  ? a.payload.intent === 'rank'
-                                    ? '调整了排序'
-                                    : '移动了事项'
-                                  : a.type.startsWith('COMMENT')
-                                    ? '更新了评论'
-                                    : a.type === 'SPRINT_INHERITED'
-                                      ? '同步了父事项的 Sprint'
-                                      : '更新了事项'}
-                            </>
-                          )}
-                          <ActivityChanges activity={a} board={board} />
-                          <time>{date(a.occurredAt)}</time>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <IssueActivity
+                    activities={[...(activities?.items ?? []), ...moreActivities]}
+                    board={board}
+                  />
                 )}
               </section>
               {tab === 'history' &&
@@ -614,22 +580,9 @@ export function IssueDrawer({
               </button>
             ))}
           </div>
-          <div className="markdown">
+          <div>
             {revision ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                skipHtml
-                components={{
-                  a: ({ href, children }) =>
-                    /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
-                      <span className="mention-chip">{children}</span>
-                    ) : (
-                      <a href={href}>{children}</a>
-                    ),
-                }}
-              >
-                {revision.markdown || '此版本没有描述。'}
-              </ReactMarkdown>
+              <MarkdownView markdown={revision.markdown || '此版本没有描述。'} />
             ) : (
               <p className="muted">选择一个版本查看内容。</p>
             )}
@@ -648,238 +601,5 @@ export function IssueDrawer({
         />
       )}
     </Dialog.Root>
-  );
-}
-function ActivityChanges({ activity, board }: { activity: Activity; board: BoardData }) {
-  const names: Record<string, string> = {
-    title: '标题',
-    description: '描述',
-    priority: '优先级',
-    statusId: '状态',
-    assigneeId: '负责人',
-    sprintId: 'Sprint',
-    epicId: 'Epic',
-    estimate: 'Story Points',
-    type: '类型',
-    labels: '标签',
-    boardOrder: '排序',
-  };
-  const resolve = (key: string, value: unknown) => {
-    if (value === null) return '无';
-    if (key === 'statusId') return board.statuses.find((s) => s.id === value)?.name ?? '历史状态';
-    if (key === 'assigneeId') return board.members.find((s) => s.id === value)?.name ?? '历史成员';
-    if (key === 'sprintId') return board.sprints.find((s) => s.id === value)?.name ?? '历史 Sprint';
-    if (key === 'epicId') return board.issues.find((s) => s.id === value)?.title ?? '历史 Epic';
-    if (key === 'priority') return priorityLabels[value as Priority];
-    return typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value);
-  };
-  return (
-    <div className="activity-changes">
-      {Object.entries(activity.payload)
-        .filter(([k, v]) => k !== 'boardOrder' && v && typeof v === 'object' && 'before' in v)
-        .map(([k, v]) => {
-          const change = v as { before: unknown; after: unknown; beforeLabel?: string; afterLabel?: string };
-          return (
-            <div key={k}>
-              {names[k] ?? k}
-              {k === 'description' ? (
-                '已保存新版本'
-              ) : (
-                <>
-                  ：<span>{change.beforeLabel ?? resolve(k, change.before)}</span> →{' '}
-                  {change.afterLabel ?? resolve(k, change.after)}
-                </>
-              )}
-            </div>
-          );
-        })}
-    </div>
-  );
-}
-function Comments({ issue, comments, readOnly }: { issue: Issue; comments: Comment[]; readOnly: boolean }) {
-  const qc = useQueryClient();
-  const me = qc.getQueryData<{ actor: { id: string } }>(['me']);
-  const draftKey = `${me?.actor.id}:${issue.id}`;
-  const [text, setText] = useState(() => commentDrafts.get(draftKey) ?? '');
-  const [generation, setGeneration] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>();
-  const [edit, setEdit] = useState<Comment | null>(null);
-  async function send() {
-    if (!text.trim() || busy || readOnly) return;
-    setError(null);
-    setBusy(true);
-    try {
-      await api(`/issues/${issue.id}/comments${edit ? `/${edit.id}` : ''}`, edit ? 'PATCH' : 'POST', {
-        content: text,
-        ...(edit ? { version: edit.version } : {}),
-      });
-      if (!edit) commentDrafts.delete(draftKey);
-      setText(edit ? (commentDrafts.get(draftKey) ?? '') : '');
-      setGeneration((n) => n + 1);
-      setEdit(null);
-      void qc.invalidateQueries({ queryKey: ['comments', issue.id] });
-      void qc.invalidateQueries({ queryKey: ['activity', issue.id] });
-    } catch (e) {
-      setError(e);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <>
-      <div className="comments">
-        {comments.map((c) => (
-          <div className="comment" id={`comment-${c.id}`} key={c.id}>
-            <Avatar actor={c.actor} small />
-            <div>
-              <strong>{c.actor.name}</strong>
-              <time>
-                {new Date(c.createdAt).toLocaleString('zh-CN', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </time>
-              <div className="markdown">
-                {c.deletedAt ? (
-                  '评论已删除'
-                ) : (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    skipHtml
-                    components={{
-                      a: ({ href, children }) =>
-                        /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
-                          <span className="mention-chip">{children}</span>
-                        ) : (
-                          <a href={href}>{children}</a>
-                        ),
-                    }}
-                  >
-                    {c.content}
-                  </ReactMarkdown>
-                )}
-              </div>
-              {!readOnly && !c.deletedAt && c.actorId === me?.actor.id && (
-                <div className="comment-actions">
-                  <button
-                    onClick={() => {
-                      if (busy) return;
-                      setGeneration((n) => n + 1);
-                      setError(null);
-                      setEdit(c);
-                      setText(c.content);
-                    }}
-                  >
-                    编辑
-                  </button>
-                  <button
-                    aria-label="删除评论"
-                    onClick={() =>
-                      void api(`/issues/${issue.id}/comments/${c.id}`, 'DELETE', {
-                        content: '删除',
-                        version: c.version,
-                      })
-                        .then(() => qc.invalidateQueries({ queryKey: ['comments', issue.id] }))
-                        .catch(setError)
-                    }
-                  >
-                    <Trash2 size={11} />
-                    删除
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      <fieldset disabled={readOnly || busy} className="comment-composer">
-        <Suspense fallback={<Loading />}>
-          <MarkdownComposer
-            key={`${draftKey}:${edit?.id ?? 'new'}:${generation}`}
-            projectId={issue.projectId}
-            compact
-            text={text}
-            onChange={(value) => {
-              setText(value);
-              if (!edit) {
-                if (value.trim()) commentDrafts.set(draftKey, value);
-                else commentDrafts.delete(draftKey);
-              }
-            }}
-            busy={readOnly || busy}
-            onSubmit={() => void send()}
-          />
-        </Suspense>
-        <div>
-          <span>离开后保留草稿 · ⌘ / Ctrl Enter 发布</span>
-          {edit && (
-            <button
-              className="text-button"
-              onClick={() => {
-                setEdit(null);
-                setText(commentDrafts.get(draftKey) ?? '');
-                setGeneration((n) => n + 1);
-                setError(null);
-              }}
-            >
-              取消编辑
-            </button>
-          )}
-          <button className="primary small" disabled={busy || !text.trim()} onClick={() => void send()}>
-            <Send size={12} />
-            {edit ? '保存评论' : '发送评论'}
-          </button>
-        </div>
-      </fieldset>
-      <ErrorNotice error={error} />
-    </>
-  );
-}
-
-function ExecutionActivity({ activity }: { activity: Activity }) {
-  const executor = typeof activity.payload.executor === 'string' ? activity.payload.executor : 'CLI';
-  const status = typeof activity.payload.status === 'string' ? activity.payload.status : '';
-  const outcomes: Record<string, string> = {
-    SUCCEEDED: '完成了开发执行',
-    FAILED: '报告执行失败',
-    CANCELLED: '释放了任务',
-  };
-  const summary = typeof activity.payload.summary === 'string' ? activity.payload.summary : '';
-  const pr = githubUrl(activity.payload.prUrl);
-  return (
-    <>
-      <strong>{activity.actorNameSnapshot}</strong> · {executor}{' '}
-      {activity.type === 'EXECUTION_CLAIMED'
-        ? '领取了任务'
-        : activity.type === 'EXECUTION_RENEWED'
-          ? '续期了任务租约'
-          : (outcomes[status] ?? '结束了执行')}
-      {summary && (
-        <div className="markdown">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            skipHtml
-            components={{
-              a: ({ href, children }) =>
-                /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
-                  <span className="mention-chip">{children}</span>
-                ) : (
-                  <a href={href}>{children}</a>
-                ),
-            }}
-          >
-            {summary}
-          </ReactMarkdown>
-        </div>
-      )}
-      {pr && (
-        <a href={pr} target="_blank" rel="noreferrer">
-          查看 Pull Request
-        </a>
-      )}
-    </>
   );
 }

@@ -1,15 +1,14 @@
-import { ExecutionController } from '../execution/execution.controller.js';
-import { ExecutionService } from '../execution/execution.service.js';
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { CommandModule } from '../../common/command.module.js';
+import { ActivityModule } from '../activity/activity.module.js';
+import { NotificationModule } from '../notification/notification.module.js';
 import { IssueController } from './issue.controller.js';
 import { IssueService } from './issue.service.js';
 import { IssueRepository } from './issue.repository.js';
-import { ActivityRepository } from '../activity/activity.repository.js';
-import { CommandService } from '../../common/command.service.js';
-@Global()
 @Module({
-  controllers: [IssueController, ExecutionController],
-  providers: [ExecutionService, IssueService, IssueRepository, ActivityRepository, CommandService],
-  exports: [IssueService, IssueRepository, ActivityRepository, CommandService],
+  imports: [CommandModule, ActivityModule, NotificationModule],
+  controllers: [IssueController],
+  providers: [IssueService, IssueRepository],
+  exports: [IssueService, IssueRepository],
 })
 export class IssueModule {}

@@ -1,0 +1,128 @@
+@media (min-width: 1600px) {
+  .board-columns {
+    gap: 22px;
+  }
+  .issue-card {
+    padding: 14px;
+    min-height: 140px;
+  }
+  .card-title {
+    font-size: 12px;
+  }
+}
+@media (max-width: 1150px) {
+  :root {
+    --sidebar: 190px;
+  }
+  .sidebar {
+    padding: 22px 11px;
+  }
+  .main-content {
+    padding: 28px 22px;
+  }
+  .board-columns {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+  }
+  .topbar {
+    padding: 0 22px;
+  }
+  .board-toolbar {
+    flex-wrap: wrap;
+  }
+  .settings-content {
+    grid-template-columns: 1fr;
+  }
+  .epic-pill {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    display: none;
+  }
+  .main-shell {
+    margin-left: 0;
+  }
+  .main-content {
+    padding: 22px 15px;
+  }
+  .topbar {
+    padding: 0 15px;
+    height: 48px;
+  }
+  .topbar-hint {
+    display: none;
+  }
+  .page-heading h1 {
+    font-size: 23px;
+  }
+  .eyebrow {
+    font-size: 8px;
+  }
+  .board-columns {
+    gap: 12px;
+    min-height: 60vh;
+  }
+  .board-toolbar .avatar-stack {
+    display: none;
+  }
+  .drawer-scroll {
+    padding: 23px;
+  }
+  .issue-drawer {
+    width: 100vw;
+  }
+  .drawer-top {
+    padding: 0 20px;
+  }
+  .issue-properties {
+    column-gap: 15px;
+  }
+  .issue-properties .property-label {
+    width: 53px;
+  }
+  .heading-actions {
+    flex-direction: column;
+  }
+  .auth-page {
+    display: block;
+  }
+  .auth-story {
+    display: none;
+  }
+  .auth-form {
+    min-height: 100vh;
+  }
+  .backlog-row {
+    gap: 6px;
+    padding: 8px;
+  }
+  .backlog-row > .status-pill {
+    display: none;
+  }
+  .backlog-row .select-trigger {
+    max-width: 80px;
+  }
+  .sprint-group > header {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .sprint-group > header > .muted {
+    display: none;
+  }
+  .board-footer {
+    font-size: 8px;
+  }
+  .editor-footer > span {
+    max-width: 140px;
+  }
+  .conflict-columns {
+    grid-template-columns: 1fr;
+  }
+  .topbar > strong {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

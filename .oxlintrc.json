@@ -10,13 +10,5 @@
     "jsx-a11y/no-autofocus": "off",
     "jsx-a11y/prefer-tag-over-role": "off"
   },
-  "ignorePatterns": ["**/generated/**", "**/dist/**", "node_modules", "test-results", "playwright-report"],
-  "overrides": [
-    {
-      "files": ["apps/web/src/features/board/BoardPage.tsx"],
-      "rules": {
-        "react/refs": "off"
-      }
-    }
-  ]
+  "ignorePatterns": ["**/generated/**", "**/dist/**", "node_modules", "test-results", "playwright-report"]
 }

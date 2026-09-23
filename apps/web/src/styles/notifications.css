@@ -1,0 +1,114 @@
+.mention-menu {
+  position: absolute;
+  z-index: 80;
+  left: 12px;
+  bottom: 8px;
+  transform: translateY(100%);
+  min-width: 240px;
+  max-width: min(360px, 85vw);
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface, white);
+  box-shadow: 0 8px 24px #0002;
+}
+.mention-menu button {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+}
+.mention-menu button[aria-selected='true'],
+.mention-menu button:hover {
+  background: #edf2ff;
+}
+.mention-menu small {
+  display: block;
+  opacity: 0.6;
+  font-size: 11px;
+}
+.mention-menu p {
+  padding: 8px;
+  font-size: 12px;
+}
+.mention-member-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.mention-chip,
+.editor-content a[href^='/mentions/'] {
+  color: #525aca;
+  background: #ededff;
+  border-radius: 4px;
+  padding: 1px 4px;
+  text-decoration: none;
+}
+.notification-bell {
+  position: relative;
+  margin-right: 14px;
+}
+.notification-bell > span {
+  position: absolute;
+  top: -5px;
+  right: -9px;
+  border-radius: 10px;
+  background: #6266d9;
+  color: white;
+  padding: 1px 4px;
+  font-size: 10px;
+}
+.notification-inbox {
+  z-index: 100;
+  width: min(400px, 92vw);
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, white);
+  box-shadow: 0 12px 40px #0002;
+}
+.notification-inbox header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.notification-items {
+  max-height: 55vh;
+  overflow: auto;
+}
+.notification-items > button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px;
+  text-align: left;
+  background: transparent;
+  margin: 4px 0;
+}
+.notification-items > button.unread {
+  background: #f1f2fe;
+}
+.notification-items > button:hover {
+  background: #e9ecff;
+}
+.notification-items strong {
+  font-size: 12px;
+}
+.notification-items span {
+  font-size: 12px;
+}
+.notification-items small {
+  opacity: 0.55;
+}
+
+.comment-composer {
+  overflow: visible;
+}

@@ -1,0 +1,11 @@
+.comment-composer .editor-wrap {
+  width: 100%;
+}
+.editor-compact .editor-content {
+  min-height: 100px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.editor-content a[href^='/mentions/'] {
+  cursor: default;
+}

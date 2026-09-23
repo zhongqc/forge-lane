@@ -2,8 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { runIssueCommand } from '../../lib/issue-mutations';
 import { useEffect, useRef, useState } from 'react';
 import MarkdownComposer from './MarkdownComposer';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownView } from '../../components/MarkdownView';
 import { Check, PenLine, X } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { Modal, ErrorNotice } from '../../components/ui';
@@ -11,29 +10,6 @@ import type { Issue } from '../../../../../packages/shared/src/contracts';
 const drafts = new Map<string, { text: string; baseVersion: number; baseMarkdown: string }>();
 export function discardDraft(id: string) {
   drafts.delete(id);
-}
-export function clearDrafts() {
-  drafts.clear();
-}
-export function MarkdownView({ markdown }: { markdown: string }) {
-  return (
-    <div className="markdown">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        skipHtml
-        components={{
-          a: ({ href, children }) =>
-            /^\/mentions\/[0-9a-f-]{36}$/i.test(href ?? '') ? (
-              <span className="mention-chip">{children}</span>
-            ) : (
-              <a href={href}>{children}</a>
-            ),
-        }}
-      >
-        {markdown}
-      </ReactMarkdown>
-    </div>
-  );
 }
 export function DescriptionEditor({
   issue,

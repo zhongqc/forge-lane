@@ -1,0 +1,144 @@
+.github-settings {
+  grid-column: 1 / -1;
+}
+.github-settings h2,
+.github-development h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.github-settings p,
+.github-development p {
+  line-height: 1.7;
+}
+.github-setup {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafbfe;
+  margin: 18px 0;
+}
+.github-settings summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.github-settings a,
+.github-development a,
+.github-activity a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.github-settings a svg,
+.github-development a svg,
+.github-activity a svg {
+  display: inline;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.github-connect {
+  padding: 8px 0 20px;
+}
+.github-repository {
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.github-repository-heading,
+.github-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.github-repository-heading strong {
+  overflow-wrap: anywhere;
+}
+.github-rules,
+.github-rule-fields fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.github-rule {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.github-settings .github-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.github-settings .github-check input {
+  width: 15px;
+  min-height: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.github-rule-fields {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 16px;
+  margin-top: 14px;
+}
+.github-rule-fields legend {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.github-status-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.github-development-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.github-development-row > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.github-development-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.github-development-row small,
+.github-activity small {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.github-pr-state {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: #f2f3f6;
+}
+.github-pr-state.state-open {
+  background: #e8f5ec;
+  color: #247347;
+}
+.github-pr-state.state-merged {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.github-activity {
+  margin-top: 5px;
+}
+@media (max-width: 600px) {
+  .github-rule-fields {
+    grid-template-columns: 1fr;
+  }
+}

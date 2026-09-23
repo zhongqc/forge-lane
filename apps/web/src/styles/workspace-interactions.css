@@ -1,0 +1,441 @@
+/* Desktop usability pass: readable card metadata and independent column scrolling. */
+@media (min-width: 761px) {
+  .main-content {
+    padding-top: 26px;
+  }
+  .board-columns {
+    height: calc(100vh - 268px);
+    min-height: 440px;
+    align-items: stretch;
+    overflow-y: hidden;
+  }
+  .board-column {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    min-height: 0;
+  }
+  .column-heading {
+    position: sticky;
+    top: 0;
+    background: #f7f8fa;
+    z-index: 2;
+  }
+  .column-heading h2 {
+    font-size: 13px;
+  }
+  .status-section h3 {
+    font-size: 11px;
+    color: #717a8b;
+  }
+  .status-section > header {
+    height: 35px;
+  }
+  .issue-card {
+    min-height: 120px;
+    padding: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    line-height: 1.55;
+    min-height: 36px;
+    max-height: 41px;
+    color: #384154;
+  }
+  .card-top {
+    margin-bottom: 6px;
+  }
+  .issue-key {
+    font-size: 10px;
+    color: #7e8799;
+  }
+  .card-type {
+    font-size: 10px;
+    color: #798496;
+  }
+  .card-epic > span {
+    font-size: 9px;
+    color: #927aa5;
+  }
+  .board-column .section-create {
+    font-size: 10px;
+    color: #9099ac;
+  }
+  .board-toolbar .filter-chip {
+    font-size: 11px;
+  }
+  .search-input input {
+    font-size: 11px;
+  }
+  .drag-handle {
+    opacity: 0.45;
+  }
+  .sidebar nav button {
+    font-size: 12px;
+  }
+  .project-switcher button {
+    font-size: 12px;
+  }
+  .page-heading p {
+    font-size: 12px;
+  }
+  .board-footer {
+    font-size: 10px;
+    color: #9099ac;
+  }
+}
+
+.editor-wrap {
+  position: relative;
+}
+.slash-anchor {
+  position: absolute;
+  top: 48px;
+  left: 14px;
+}
+.slash-menu [role='menuitem'] {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 9px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.slash-menu [role='menuitem']:hover {
+  background: #f1effb;
+}
+.backlog-row .drag-handle {
+  opacity: 0.5;
+}
+.backlog-row:hover .drag-handle {
+  opacity: 1;
+}
+.multi-options {
+  max-height: 260px;
+  overflow: auto;
+}
+.multi-option {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 12px;
+  padding: 7px 5px;
+  margin: 0;
+  font-weight: 400;
+}
+.multi-option input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+.revision-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 22px;
+  min-height: 220px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.revision-entry {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  padding: 12px 9px;
+  border-radius: 6px;
+}
+.revision-entry.selected {
+  background: var(--accent-light);
+}
+.revision-entry strong {
+  font-size: 12px;
+}
+.revision-entry span {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+fieldset.comment-composer {
+  border: 0;
+  padding: 0;
+  margin-inline: 0;
+  min-width: 0;
+}
+button:disabled {
+  cursor: default;
+}
+
+.mobile-nav {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobile-nav {
+    display: flex;
+    overflow: auto;
+    gap: 8px;
+    padding: 10px 15px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-nav button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    padding: 8px;
+    color: var(--muted);
+  }
+  .mobile-nav button.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 6px;
+  }
+  .board-toolbar,
+  .expanded-filters,
+  .list-toolbar {
+    overflow: auto;
+  }
+}
+
+/* Keep hit areas stationary while dragging; insertion cues do not affect layout. */
+.draggable-card {
+  cursor: grab;
+  touch-action: none;
+}
+.draggable-card .card-title {
+  cursor: inherit;
+}
+.is-dragging,
+.is-dragging * {
+  cursor: grabbing !important;
+}
+.card-slot {
+  position: relative;
+}
+.drop-indicator {
+  position: absolute;
+  z-index: 2;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px #efecff;
+}
+.drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.section-cards {
+  position: relative;
+}
+.drop-indicator-end {
+  top: auto;
+  bottom: -5px;
+}
+.drag-preview {
+  cursor: grabbing;
+  box-shadow: 0 14px 32px #27204730;
+  border-color: var(--accent);
+  transform: rotate(1deg);
+}
+.create-description {
+  margin-top: 20px;
+}
+.create-description h3 {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.create-description h3 span {
+  font-weight: normal;
+  margin-left: 6px;
+}
+.create-description .editor-content {
+  min-height: 160px;
+  max-height: 32vh;
+  overflow-y: auto;
+}
+.create-description > p {
+  font-size: 11px;
+  margin: 9px 0;
+}
+.create-issue-form > .modal-footer {
+  position: sticky;
+  bottom: -24px;
+  background: white;
+  z-index: 2;
+  padding-bottom: 20px;
+  margin-bottom: -20px;
+}
+
+/* The drag activator covers the complete card; content remains clickable above it. */
+.card-drag-surface {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  touch-action: none;
+}
+.card-drag-surface:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.draggable-card > .card-top,
+.draggable-card > .card-title,
+.draggable-card > .card-epic,
+.draggable-card > .card-bottom {
+  position: relative;
+}
+.draggable-card > .card-top {
+  position: static;
+}
+.draggable-card .card-title {
+  z-index: 1;
+}
+.draggable-card :is(.card-epic, .card-bottom, .issue-key, .card-top-right) {
+  cursor: grab;
+}
+
+/* A column is one ranked list. Destination statuses appear only during a drag. */
+.board-column {
+  position: relative;
+  overflow: hidden;
+  padding: 0 9px 8px;
+  display: flex;
+  flex-direction: column;
+}
+.board-column .column-heading {
+  flex-shrink: 0;
+  position: static;
+}
+.column-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  padding: 6px 2px 12px;
+}
+.column-scroll > .section-cards {
+  min-height: 70px;
+}
+.card-status {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 9px;
+  line-height: 1.4;
+  background: #eef0f5;
+  color: #657086;
+}
+.card-status.category-IN_PROGRESS {
+  color: #7160b2;
+  background: #f0ecfc;
+}
+.card-status.category-DONE {
+  color: #417d66;
+  background: #e8f5ed;
+}
+.is-receiving .column-scroll {
+  opacity: 0.16;
+  pointer-events: none;
+  overflow: hidden;
+}
+.column-drop-zones {
+  position: absolute;
+  inset: 49px 9px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
+  padding: 6px 0 0;
+}
+.column-drop-zones > p {
+  margin: 0;
+  text-align: center;
+  color: #7d739b;
+  font-size: 11px;
+}
+.status-drop-zone {
+  flex: 1;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1.5px dashed #c3badf;
+  border-radius: 8px;
+  background: #faf9fee8;
+  color: #66577f;
+  transition:
+    background 100ms,
+    border-color 100ms,
+    box-shadow 100ms;
+}
+.status-drop-zone > strong {
+  font-size: 13px;
+  text-align: center;
+}
+.status-drop-zone > span:last-child {
+  font-size: 11px;
+  color: #9286a5;
+}
+.status-drop-zone.selected {
+  background: #eeebff;
+  border-color: var(--accent);
+  border-style: solid;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.drop-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #adb5c2;
+}
+.drop-status-dot.category-IN_PROGRESS {
+  background: #9e93d7;
+}
+.drop-status-dot.category-DONE {
+  background: #84b39e;
+}
+.global-create {
+  flex-shrink: 0;
+  padding: 7px 13px;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .board-column {
+    height: max(400px, calc(100dvh - 300px));
+    min-height: 0;
+  }
+  .global-create kbd {
+    display: none;
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .topbar > span:first-of-type {
+    display: none;
+  }
+  .topbar > .breadcrumb-slash:first-of-type {
+    display: none;
+  }
+}

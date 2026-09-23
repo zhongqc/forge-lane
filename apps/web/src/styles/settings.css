@@ -1,0 +1,47 @@
+.settings-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  max-width: 1000px;
+  align-items: start;
+}
+.settings-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 23px;
+}
+.settings-card h2 {
+  font-size: 13px;
+  margin-bottom: 17px;
+  font-weight: 550;
+}
+.settings-card label {
+  font-size: 11px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f2f6;
+  font-size: 11px;
+}
+.settings-row > span:nth-child(2) {
+  flex: 1;
+}
+.settings-row .select-trigger {
+  font-size: 10px;
+}
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.inline-form input {
+  font-size: 11px;
+}
+.label-list {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}

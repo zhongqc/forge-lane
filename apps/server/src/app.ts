@@ -11,6 +11,7 @@ import { DatabaseModule, Db } from './common/db.js';
 import { ApiExceptionFilter } from './common/errors.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ProjectModule } from './modules/project/project.module.js';
+import { ExecutionModule } from './modules/execution/execution.module.js';
 import { IssueModule } from './modules/issue/issue.module.js';
 import { SprintModule } from './modules/sprint/sprint.module.js';
 import { WorkspaceService } from './modules/workspace/workspace.service.js';
@@ -34,6 +35,7 @@ class HealthController {
     AuthModule,
     ProjectModule,
     IssueModule,
+    ExecutionModule,
     SprintModule,
     BoardModule,
     GitHubModule,

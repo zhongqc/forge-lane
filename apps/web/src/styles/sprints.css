@@ -1,0 +1,82 @@
+.sprint-points-panel {
+  margin: 12px 0;
+  border: 1px solid var(--border, #e5e7ef);
+  border-radius: 10px;
+  background: #fff;
+}
+.sprint-points-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  text-align: left;
+}
+.sprint-points-toggle > :last-child {
+  margin-left: auto;
+}
+.sprint-overview-content {
+  padding: 12px 16px;
+}
+.sprint-points-scroll {
+  overflow-x: auto;
+}
+.sprint-points-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  margin: 12px 0;
+}
+.sprint-points-table th,
+.sprint-points-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f5;
+  text-align: right;
+  white-space: nowrap;
+}
+.sprint-points-table th:first-child {
+  text-align: left;
+}
+.sprint-points-table thead {
+  color: #747c92;
+  font-size: 12px;
+}
+.sprint-history-warning {
+  padding: 12px;
+  background: #fff7df;
+  color: #866516;
+  border-radius: 8px;
+  line-height: 1.7;
+}
+.sprint-history-issues {
+  margin-top: 20px;
+}
+.sprint-history-issues > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf0f5;
+  text-align: left;
+}
+.sprint-history-issues > button strong {
+  flex: 1;
+  min-width: 100px;
+  overflow-wrap: anywhere;
+}
+.sprint-history-issues > button span {
+  font-size: 12px;
+  color: #747c92;
+}
+.sprint-history-issues > button .sprint-done {
+  color: #278254;
+}
+@media (max-width: 700px) {
+  .sprint-points-toggle {
+    flex-wrap: wrap;
+  }
+  .sprint-history-issues > button {
+    flex-wrap: wrap;
+  }
+}

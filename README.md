@@ -85,3 +85,7 @@ API 文档：http://localhost:3001/api/docs，JSON：http://localhost:3001/api/d
 看板和 Backlog 的当前 Sprint 下可展开“成员 Story Points”，查看每人的总点数、已完成点数、剩余点数、事项数及未估点事项；未分配单列，按 Story / Task / Bug 统计，子任务不重复计点，统计不受看板筛选影响。
 
 Backlog 右上角“历史 Sprint”可查看已完成迭代。新完成的 Sprint 会在未完成事项迁出前保存不可变快照，后续修改事项不会改写历史点数。旧 Sprint 没有快照时明确标注数据不完整，仅展示目前仍关联的事项及当前字段。
+
+## 代码组织
+
+前后端职责、模块依赖和样式维护约定见 [代码组织与模块边界](docs/code-organization.md)。
