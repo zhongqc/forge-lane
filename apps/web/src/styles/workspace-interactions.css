@@ -15,7 +15,6 @@
   .column-heading {
     position: sticky;
     top: 0;
-    background: #f7f8fa;
     z-index: 2;
   }
   .column-heading h2 {
@@ -306,7 +305,7 @@ button:disabled {
 .board-column {
   position: relative;
   overflow: hidden;
-  padding: 0 9px 8px;
+  padding: 0;
   display: flex;
   flex-direction: column;
 }
@@ -320,7 +319,10 @@ button:disabled {
   overflow-y: auto;
   scrollbar-width: thin;
   overscroll-behavior: contain;
-  padding: 6px 2px 12px;
+  padding: 6px 6px 10px;
+  background: #f7f8fa;
+  border: 1px solid #eef0f4;
+  border-radius: 6px;
 }
 .column-scroll > .section-cards {
   min-height: 70px;
@@ -352,7 +354,7 @@ button:disabled {
 }
 .column-drop-zones {
   position: absolute;
-  inset: 49px 9px 9px;
+  inset: 36px 7px 7px;
   display: flex;
   flex-direction: column;
   gap: 10px;
