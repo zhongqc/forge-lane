@@ -156,7 +156,7 @@
 .board-columns {
   display: grid;
   grid-template-columns: repeat(4, minmax(210px, 1fr));
-  gap: 16px;
+  gap: 8px;
   align-items: start;
   overflow-x: auto;
   padding-bottom: 12px;
