@@ -342,9 +342,25 @@ export function BoardPage({
         </button>
         <div className="toolbar-spacer" />
         <CurrentSprintPoints data={data} presentation="drawer" />
-        <div className="avatar-stack">
+        <div className="avatar-stack" role="group" aria-label="按负责人筛选">
           {data.members.slice(0, 4).map((a) => (
-            <Avatar key={a.id} actor={a} small />
+            <button
+              key={a.id}
+              className="avatar-filter"
+              aria-label={`筛选负责人：${a.name}`}
+              aria-pressed={assignee.split(',').includes(a.id)}
+              title={`筛选 ${a.name} 的事项（可多选）`}
+              onClick={() =>
+                setAssignee((current) => {
+                  const selected = current.split(',').filter(Boolean);
+                  return selected.includes(a.id)
+                    ? selected.filter((id) => id !== a.id).join(',')
+                    : [...selected, a.id].join(',');
+                })
+              }
+            >
+              <Avatar actor={a} small />
+            </button>
           ))}
         </div>
         <SelectField

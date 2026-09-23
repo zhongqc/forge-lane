@@ -416,3 +416,60 @@ test('board fills remaining height after resizing with persistent filters', asyn
     })
     .toBe(16);
 });
+
+test('avatar filters support multiple assignees and stay in sync with the dropdown', async ({
+  page,
+  browser,
+}) => {
+  const { project, board } = await fixture(page);
+  const owner = board.members[0];
+  const email = `avatar-${Date.now()}@forge.test`;
+  const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
+  try {
+    await context.request.post('/api/auth/register', {
+      data: { email, password: 'Avatar-test-2026', name: '头像成员' },
+    });
+    const member = await (
+      await page.request.post('/api/workspace/members', { data: { email, role: 'MEMBER' } })
+    ).json();
+    expect(
+      (
+        await page.request.post(`/api/projects/${project.id}/members`, {
+          data: { actorId: member.actorId, role: 'MEMBER' },
+        })
+      ).ok(),
+    ).toBeTruthy();
+    for (const [assigneeId, title] of [
+      [owner.id, '负责人的事项'],
+      [member.actorId, '其他成员事项'],
+    ]) {
+      expect(
+        (
+          await page.request.post(`/api/projects/${project.id}/issues`, {
+            data: { type: 'TASK', title, assigneeId },
+          })
+        ).ok(),
+      ).toBeTruthy();
+    }
+    await page.reload();
+    const first = page.getByRole('button', { name: `筛选负责人：${owner.name}`, exact: true });
+    const second = page.getByRole('button', { name: '筛选负责人：头像成员', exact: true });
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: '其他成员事项', exact: true })).not.toBeVisible();
+    await second.click();
+    await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: '其他成员事项', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '负责人的事项', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '验证交互可靠性', exact: true })).not.toBeVisible();
+    await page.getByRole('button', { name: '负责人 2', exact: true }).click();
+    await expect(page.getByRole('checkbox', { name: owner.name, exact: true })).toBeChecked();
+    await page.getByRole('checkbox', { name: owner.name, exact: true }).uncheck();
+    await page.keyboard.press('Escape');
+    await expect(first).toHaveAttribute('aria-pressed', 'false');
+    await second.click();
+    await expect(page.getByRole('button', { name: '验证交互可靠性', exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
