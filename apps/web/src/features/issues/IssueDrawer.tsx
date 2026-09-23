@@ -426,20 +426,12 @@ export function IssueDrawer({
                 </div>
               </div>
               <section className="detail-section">
-                <div className="section-title">
-                  <h3>描述</h3>
-                  <button
-                    className="text-button"
-                    onClick={() => {
+                <Suspense fallback={<Loading />}>
+                  <DescriptionEditor
+                    onHistory={() => {
                       setHistoryOpen(true);
                       setRevisionId('');
                     }}
-                  >
-                    版本记录
-                  </button>
-                </div>
-                <Suspense fallback={<Loading />}>
-                  <DescriptionEditor
                     readOnly={!canWrite}
                     key={issue.id}
                     issue={issue}

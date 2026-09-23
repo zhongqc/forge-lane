@@ -540,3 +540,28 @@ test('avatar upload shows errors and refreshes the account photo after retry', a
   await expect.poll(() => avatar.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
   expect(attempts).toBe(2);
 });
+
+test('description history and edit actions do not overlap on desktop or mobile', async ({ page }) => {
+  const { issue } = await fixture(page);
+  await page.goto(`/issues/${issue.key}`);
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const history = page.getByRole('button', { name: '版本记录', exact: true });
+    const edit = page.getByRole('button', { name: '编辑描述', exact: true });
+    await expect(edit).toBeVisible();
+    await history.scrollIntoViewIfNeeded();
+    const a = await history.boundingBox();
+    const b = await edit.boundingBox();
+    expect(a!.x + a!.width).toBeLessThanOrEqual(b!.x - 4);
+    await history.click();
+    await expect(page.getByRole('dialog', { name: '描述版本记录', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await edit.click();
+    await expect(page.getByRole('textbox', { name: 'editable markdown', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: '取消', exact: true }).click();
+    await expect(edit).toBeVisible();
+  }
+});

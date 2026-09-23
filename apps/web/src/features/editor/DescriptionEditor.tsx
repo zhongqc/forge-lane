@@ -16,8 +16,10 @@ export function DescriptionEditor({
   readOnly = false,
   onSaved,
   onDirty,
+  onHistory,
 }: {
   issue: Issue;
+  onHistory: () => void;
   readOnly?: boolean;
   onSaved: (i: Issue) => void;
   onDirty: (dirty: boolean) => void;
@@ -115,125 +117,150 @@ export function DescriptionEditor({
     onDirty(false);
     setError(null);
   }
-  if (readOnly) return <MarkdownView markdown={issue.description || '暂无描述'} />;
-  if (!editing)
-    return (
-      <div className="description-display">
-        <button
-          className="description-edit"
-          aria-label="编辑描述"
-          onClick={() => {
-            setText(issue.description);
-            setBase(issue.version);
-            setBaseMarkdown(issue.description);
-            setEditing(true);
-          }}
-        >
-          <PenLine size={14} />
+  const heading = (
+    <div className="section-title">
+      <h3>描述</h3>
+      <div className="description-actions">
+        <button className="text-button" onClick={onHistory}>
+          版本记录
         </button>
-        {issue.description ? (
-          <div
-            onDoubleClick={() => {
+        {!readOnly && !editing && (
+          <button
+            className="description-edit"
+            aria-label="编辑描述"
+            title="编辑描述"
+            onClick={() => {
               setText(issue.description);
               setBase(issue.version);
               setBaseMarkdown(issue.description);
               setEditing(true);
             }}
           >
-            <MarkdownView markdown={issue.description} />
-          </div>
-        ) : (
-          <button
-            className="description-placeholder"
-            onClick={() => {
-              setBase(issue.version);
-              setBaseMarkdown(issue.description);
-              setEditing(true);
-            }}
-          >
-            添加描述…<span>说明背景、目标和验收标准，让协作更清晰。</span>
+            <PenLine size={14} />
           </button>
         )}
       </div>
+    </div>
+  );
+  if (readOnly)
+    return (
+      <>
+        {heading}
+        <MarkdownView markdown={issue.description || '暂无描述'} />
+      </>
+    );
+  if (!editing)
+    return (
+      <>
+        {heading}
+        <div className="description-display">
+          {issue.description ? (
+            <div
+              onDoubleClick={() => {
+                setText(issue.description);
+                setBase(issue.version);
+                setBaseMarkdown(issue.description);
+                setEditing(true);
+              }}
+            >
+              <MarkdownView markdown={issue.description} />
+            </div>
+          ) : (
+            <button
+              className="description-placeholder"
+              onClick={() => {
+                setBase(issue.version);
+                setBaseMarkdown(issue.description);
+                setEditing(true);
+              }}
+            >
+              添加描述…<span>说明背景、目标和验收标准，让协作更清晰。</span>
+            </button>
+          )}
+        </div>
+      </>
     );
   return (
-    <div
-      ref={boundary}
-      onBlur={(event) => {
-        const target = event.relatedTarget;
-        if (!target || !(target instanceof Element)) return;
-        if (event.currentTarget.contains(target)) return;
-        const dialog = target.closest('[role=dialog]');
-        if (dialog && dialog !== event.currentTarget.closest('[role=dialog]')) return;
-        // Editor portals (links, block selectors, mentions) remain part of editing.
-        if (
-          target.closest(
-            '[data-radix-popper-content-wrapper], .mention-menu, .mdxeditor-popup-container, [aria-label="关闭详情"]',
+    <>
+      {heading}
+      <div
+        ref={boundary}
+        onBlur={(event) => {
+          const target = event.relatedTarget;
+          if (!target || !(target instanceof Element)) return;
+          if (event.currentTarget.contains(target)) return;
+          const dialog = target.closest('[role=dialog]');
+          if (dialog && dialog !== event.currentTarget.closest('[role=dialog]')) return;
+          // Editor portals (links, block selectors, mentions) remain part of editing.
+          if (
+            target.closest(
+              '[data-radix-popper-content-wrapper], .mention-menu, .mdxeditor-popup-container, [aria-label="关闭详情"]',
+            )
           )
-        )
-          return;
-        if (!busy && !latest && !error) void save();
-      }}
-    >
-      <MarkdownComposer
-        projectId={issue.projectId}
-        key={`${issue.id}:${base}`}
-        text={text}
-        onChange={setText}
-        busy={busy}
-        onSubmit={() => void save()}
-      />
-      <ErrorNotice error={error} />
-      <div className="editor-footer">
-        <span>{busy ? '正在保存…' : '离开编辑区自动保存 · ⌘ / Ctrl Enter 保存'}</span>
-        <button className="secondary small" onClick={cancel} disabled={busy}>
-          <X size={13} />
-          取消
-        </button>
-        <button className="primary small" onClick={() => void save()} disabled={busy}>
-          <Check size={13} />
-          保存描述
-        </button>
-      </div>
-      <Modal
-        open={!!latest}
-        onOpenChange={(v) => {
-          if (!v) setLatest(null);
+            return;
+          if (!busy && !latest && !error) void save();
         }}
-        title="描述有新版本"
-        wide
       >
-        <p className="muted">有人在你编辑时更新了事项。本地草稿已保留，请比较后选择。</p>
-        <div className="conflict-columns">
-          <section>
-            <h4>你的草稿</h4>
-            <MarkdownView markdown={text} />
-          </section>
-          <section>
-            <h4>最新版本</h4>
-            <MarkdownView markdown={latest?.description ?? ''} />
-          </section>
+        <MarkdownComposer
+          projectId={issue.projectId}
+          key={`${issue.id}:${base}`}
+          text={text}
+          onChange={setText}
+          busy={busy}
+          onSubmit={() => void save()}
+        />
+        <ErrorNotice error={error} />
+        <div className="editor-footer">
+          <span>{busy ? '正在保存…' : '离开编辑区自动保存 · ⌘ / Ctrl Enter 保存'}</span>
+          <button className="secondary small" onClick={cancel} disabled={busy}>
+            <X size={13} />
+            取消
+          </button>
+          <button className="primary small" onClick={() => void save()} disabled={busy}>
+            <Check size={13} />
+            保存描述
+          </button>
         </div>
-        <footer className="modal-footer">
-          <button
-            className="secondary"
-            onClick={() => {
-              if (latest) {
-                setText(latest.description);
-                setBase(latest.version);
-                setBaseMarkdown(latest.description);
-                onSaved(latest);
-                setLatest(null);
-              }
-            }}
-          >
-            使用最新内容
-          </button>
-          <button className="primary" disabled={busy} onClick={() => latest && void save(latest.version)}>
-            保留我的内容并保存
-          </button>
-        </footer>
-      </Modal>
-    </div>
+        <Modal
+          open={!!latest}
+          onOpenChange={(v) => {
+            if (!v) setLatest(null);
+          }}
+          title="描述有新版本"
+          wide
+        >
+          <p className="muted">有人在你编辑时更新了事项。本地草稿已保留，请比较后选择。</p>
+          <div className="conflict-columns">
+            <section>
+              <h4>你的草稿</h4>
+              <MarkdownView markdown={text} />
+            </section>
+            <section>
+              <h4>最新版本</h4>
+              <MarkdownView markdown={latest?.description ?? ''} />
+            </section>
+          </div>
+          <footer className="modal-footer">
+            <button
+              className="secondary"
+              onClick={() => {
+                if (latest) {
+                  setText(latest.description);
+                  setBase(latest.version);
+                  setBaseMarkdown(latest.description);
+                  onSaved(latest);
+                  setLatest(null);
+                }
+              }}
+            >
+              使用最新内容
+            </button>
+            <button className="primary" disabled={busy} onClick={() => latest && void save(latest.version)}>
+              保留我的内容并保存
+            </button>
+          </footer>
+        </Modal>
+      </div>
+    </>
   );
 }
