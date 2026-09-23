@@ -1,3 +1,4 @@
+import { nameAvatar } from '../../../../packages/shared/src/avatar';
 import { useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Popover from '@radix-ui/react-popover';
@@ -159,11 +160,12 @@ export function Avatar({
   actor?: (Pick<Actor, 'name' | 'color'> & Partial<Pick<Actor, 'id' | 'avatarKey'>>) | null;
   small?: boolean;
 }) {
+  const generated = actor ? nameAvatar(actor.name) : null;
   return (
     <span
       className={`avatar ${small ? 'avatar-small' : ''} ${!actor ? 'unassigned' : ''}`}
       title={actor?.name ?? '未分配'}
-      style={actor ? { background: actor.color } : undefined}
+      style={generated ? { background: generated.color } : undefined}
     >
       {actor?.id && actor.avatarKey ? (
         <img
@@ -175,7 +177,7 @@ export function Avatar({
           }}
         />
       ) : null}
-      {actor?.name.slice(0, 1) ?? '–'}
+      {generated?.initials ?? '–'}
     </span>
   );
 }

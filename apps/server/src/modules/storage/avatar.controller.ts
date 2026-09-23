@@ -11,13 +11,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import type { Response } from 'express';
 import type {} from 'multer';
 import { Db } from '../../common/db.js';
 import { fail } from '../../common/errors.js';
 import { SessionGuard, type AuthRequest } from '../auth/auth.guard.js';
+import { AvatarCache } from './avatar-cache.service.js';
 import { OssService } from './oss.service.js';
 
 @Controller('api')
@@ -26,6 +27,7 @@ export class AvatarController {
   constructor(
     @Inject(Db) private db: Db,
     @Inject(OssService) private oss: OssService,
+    @Inject(AvatarCache) private cache: AvatarCache,
   ) {}
 
   @Post('me/avatar')
@@ -71,8 +73,21 @@ export class AvatarController {
       select: { avatarKey: true },
     });
     if (!actor?.avatarKey) fail(404, '头像不存在');
-    const content = await this.oss.get(actor.avatarKey);
-    res.setHeader('Cache-Control', 'private, max-age=60');
+    const key = actor.avatarKey;
+    const version = req.query.v;
+    if (version !== undefined && version !== key) {
+      res.setHeader('Cache-Control', 'no-store');
+      fail(404, '头像版本已更新');
+    }
+    res.vary('Cookie');
+    res.setHeader(
+      'Cache-Control',
+      version === key ? 'private, max-age=86400, immutable' : 'private, no-cache',
+    );
+    res.setHeader('ETag', `"${createHash('sha256').update(key).digest('hex')}"`);
+    if (req.fresh) return res.status(304).end();
+    const content = await this.cache.get(key, async () => Buffer.from(await this.oss.get(key)));
+
     res.type('image/webp').send(content);
   }
 }

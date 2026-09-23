@@ -12,6 +12,7 @@ let actorId: string;
 let savedKey: string;
 let stored: Buffer;
 let putMock: MockInstance<OssService['put']>;
+let getMock: MockInstance<OssService['get']>;
 let deleteMock: MockInstance<OssService['delete']>;
 beforeAll(async () => {
   app = await createApp();
@@ -39,7 +40,7 @@ beforeAll(async () => {
     savedKey = key;
     stored = data;
   });
-  vi.spyOn(app.get(OssService), 'get').mockImplementation(async () => stored);
+  getMock = vi.spyOn(app.get(OssService), 'get').mockImplementation(async () => stored);
   deleteMock = vi.spyOn(app.get(OssService), 'delete').mockResolvedValue(undefined);
 });
 afterAll(async () => {
@@ -58,6 +59,13 @@ it('stores a normalized avatar in its actor folder and exposes it through authen
     .get(`/api/actors/${actorId}/avatar`)
     .expect('Content-Type', /image\/webp/)
     .expect(200);
+  const versioned = `/api/actors/${actorId}/avatar?v=${encodeURIComponent(savedKey)}`;
+  const cached = await owner.get(versioned).expect(200);
+  expect(cached.headers['cache-control']).toBe('private, max-age=86400, immutable');
+  expect(cached.headers.vary).toContain('Cookie');
+  await owner.get(versioned).set('If-None-Match', cached.headers.etag).expect(304);
+  expect(getMock).toHaveBeenCalledTimes(1);
+  await other.get(versioned).set('If-None-Match', cached.headers.etag).expect(404);
   await other.get(`/api/actors/${actorId}/avatar`).expect(404);
   await request(app.getHttpServer()).get(`/api/actors/${actorId}/avatar`).expect(401);
 });
@@ -77,5 +85,8 @@ it('keeps the previous avatar when OSS fails and deletes the previous object aft
   expect(deleteMock).not.toHaveBeenCalled();
   await owner.post('/api/me/avatar').attach('file', image, 'avatar.png').expect(201);
   expect(savedKey).not.toBe(previousKey);
+  await owner.get(`/api/actors/${actorId}/avatar?v=${encodeURIComponent(previousKey)}`).expect(404);
+  await owner.get(`/api/actors/${actorId}/avatar?v=${encodeURIComponent(savedKey)}`).expect(200);
+  expect(getMock).toHaveBeenCalledTimes(2);
   expect(deleteMock).toHaveBeenCalledWith(previousKey);
 });
