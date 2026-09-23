@@ -488,13 +488,6 @@ export function BoardPage({
           )}
         </DragOverlay>
       </DndContext>
-      <div className="board-footer">
-        <span>
-          <span className="live-dot" />
-          所有更改自动同步
-        </span>
-        <span>列内拖动排序 · 跨列选择状态 · 点击标题查看详情</span>
-      </div>
     </>
   );
 }

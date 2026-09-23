@@ -1,8 +1,5 @@
 /* Desktop usability pass: readable card metadata and independent column scrolling. */
 @media (min-width: 761px) {
-  .main-content {
-    padding-top: 26px;
-  }
   .board-columns {
     height: calc(100vh - 268px);
     min-height: 440px;
@@ -78,10 +75,6 @@
   }
   .page-heading p {
     font-size: 12px;
-  }
-  .board-footer {
-    font-size: 10px;
-    color: #9099ac;
   }
 }
 

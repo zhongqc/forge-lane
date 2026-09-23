@@ -463,25 +463,6 @@
 .section-create:hover {
   color: var(--accent);
 }
-.board-footer {
-  display: flex;
-  justify-content: space-between;
-  color: #b2b7c2;
-  font-size: 9px;
-  margin-top: 8px;
-}
-.board-footer > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.live-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #8db8a4;
-  display: inline-block;
-}
 .overlay-card {
   background: #fff;
   border: 1px solid #9990d9;

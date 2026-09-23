@@ -433,7 +433,7 @@ a {
   color: #a9adba;
 }
 .main-content {
-  padding: 34px 32px 20px;
+  padding: 18px 24px 16px;
   max-width: 1920px;
   margin: auto;
 }
@@ -441,16 +441,16 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 26px;
+  margin-bottom: 16px;
   gap: 20px;
 }
 .page-heading h1 {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 11px;
-  margin: 8px 0 8px;
+  margin: 4px 0;
 }
 .page-heading h1 > span {
   font-size: 11px;
