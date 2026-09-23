@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { test, expect, type Page } from '@playwright/test';
 async function fixture(page: Page) {
   const tag = Date.now().toString(36).toUpperCase();
@@ -504,10 +505,11 @@ test('account menu is available in the header on desktop and mobile', async ({ p
 
 test('avatar upload shows errors and refreshes the account photo after retry', async ({ page }) => {
   await fixture(page);
-  const png = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
-    'base64',
-  );
+  const pixels = Buffer.alloc(600 * 300 * 3);
+  for (let index = 0; index < 600 * 300; index++) pixels[index * 3 + (index % 600 < 300 ? 0 : 2)] = 255;
+  const png = await sharp(pixels, { raw: { width: 600, height: 300, channels: 3 } })
+    .png()
+    .toBuffer();
   let uploaded = false;
   let attempts = 0;
   await page.route('**/api/me', async (route) => {
@@ -521,6 +523,11 @@ test('avatar upload shows errors and refreshes the account photo after retry', a
   );
   await page.route('**/api/me/avatar', async (route) => {
     expect(route.request().headers()['content-type']).toContain('multipart/form-data');
+    const multipart = route.request().postDataBuffer()!;
+    const file = multipart.subarray(multipart.indexOf('\r\n\r\n') + 4, multipart.lastIndexOf('\r\n--'));
+    expect(await sharp(file).metadata()).toMatchObject({ width: 256, height: 256, format: 'webp' });
+    const stats = await sharp(file).stats();
+    expect(stats.channels[2]!.mean).toBeGreaterThan(stats.channels[0]!.mean);
     attempts++;
     uploaded = attempts > 1;
     await route.fulfill({
@@ -531,13 +538,34 @@ test('avatar upload shows errors and refreshes the account photo after retry', a
   await page.getByRole('button', { name: '账号菜单', exact: true }).click();
   const input = page.getByLabel('选择头像', { exact: true });
   await input.setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: png });
-  await expect(page.getByText('头像上传失败，请稍后重试', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '更换头像', exact: true })).toBeEnabled();
+  const dialog = page.getByRole('dialog', { name: '调整头像', exact: true });
+  await expect(dialog).toBeVisible();
+  expect(attempts).toBe(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect((await page.getByRole('slider', { name: '头像缩放' }).boundingBox())!.width).toBeGreaterThan(150);
+  await dialog.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  expect(attempts).toBe(0);
   await input.setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: png });
-  await expect(page.getByText('头像上传失败，请稍后重试', { exact: true })).not.toBeVisible();
+  await page.getByRole('slider', { name: '头像缩放' }).focus();
+  await page.getByRole('slider', { name: '头像缩放' }).press('End');
+  const stage = page.locator('.avatar-crop-stage');
+  const bounds = (await stage.boundingBox())!;
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 - 130, bounds.y + bounds.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await page.screenshot({ path: test.info().outputPath('avatar-crop-preview.png'), animations: 'disabled' });
+  await dialog.getByRole('button', { name: '确认并上传', exact: true }).click();
+  await expect(page.getByText('头像上传失败，请稍后重试', { exact: true })).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('slider', { name: '头像缩放' })).toHaveValue('3');
+  await dialog.getByRole('button', { name: '确认并上传', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
   const avatar = page.locator('.account-trigger img');
   await expect(avatar).toBeVisible();
-  await expect.poll(() => avatar.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+  await expect.poll(() => avatar.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(600);
   expect(attempts).toBe(2);
 });
 

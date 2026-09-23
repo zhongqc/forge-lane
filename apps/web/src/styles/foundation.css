@@ -490,3 +490,60 @@ a {
   background: var(--accent-soft);
   color: var(--accent);
 }
+
+.avatar-crop-help {
+  color: var(--muted);
+  font-size: 12px;
+}
+.avatar-crop-stage {
+  position: relative;
+  height: min(320px, 42dvh);
+  min-height: 200px;
+  background: #252936;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.avatar-crop-zoom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  font-size: 12px;
+}
+.avatar-crop-zoom input {
+  flex: 1;
+  width: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.avatar-crop-zoom span {
+  width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.avatar-crop-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.avatar-crop-preview-row > button {
+  margin-left: auto;
+}
+.avatar-crop-preview {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f0f1f5;
+}
+.avatar-crop-preview img {
+  position: absolute;
+  max-width: none;
+}
+.avatar-crop-footer > :first-child {
+  margin-right: auto;
+}
