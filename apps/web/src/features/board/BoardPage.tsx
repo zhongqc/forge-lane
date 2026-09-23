@@ -346,6 +346,7 @@ export function BoardPage({
           筛选{quick.length > 0 && <span className="tiny-count">{quick.length}</span>}
         </button>
         <div className="toolbar-spacer" />
+        <CurrentSprintPoints data={data} presentation="drawer" />
         <div className="avatar-stack">
           {data.members.slice(0, 4).map((a) => (
             <Avatar key={a.id} actor={a} small />
@@ -361,7 +362,6 @@ export function BoardPage({
           onChange={setScope}
         />
       </div>
-      <CurrentSprintPoints data={data} />
       {filters && (
         <div className="expanded-filters">
           {[

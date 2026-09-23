@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { History, Users } from 'lucide-react';
+import { History, Users, X } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { api } from '../../lib/api';
 import { ErrorNotice, Modal, SelectField, Loading } from '../../components/ui';
 import type { BoardData, SprintOverview as Overview } from '../../../../../packages/shared/src/contracts';
@@ -96,10 +97,47 @@ function OverviewContent({
     </div>
   );
 }
-export function CurrentSprintPoints({ data }: { data: BoardData }) {
+export function CurrentSprintPoints({
+  data,
+  presentation = 'inline',
+}: {
+  data: BoardData;
+  presentation?: 'inline' | 'drawer';
+}) {
   const [open, setOpen] = useState(false);
   const sprint = data.sprints.find((s) => s.status === 'ACTIVE');
   if (!sprint) return null;
+  if (presentation === 'drawer')
+    return (
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger asChild>
+          <button
+            className="filter-chip sprint-points-button"
+            aria-label="成员 Story Points"
+            title="查看当前 Sprint 的成员 Story Points"
+          >
+            <Users size={14} /> Story Points
+          </button>
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="drawer-overlay" />
+          <Dialog.Content className="issue-drawer sprint-points-drawer">
+            <header className="drawer-top">
+              <Dialog.Title>成员 Story Points</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="icon-button" aria-label="关闭成员统计">
+                  <X size={18} />
+                </button>
+              </Dialog.Close>
+            </header>
+            <div className="sprint-points-body">
+              <Dialog.Description className="sprint-points-context">{sprint.name}</Dialog.Description>
+              {open && <OverviewContent id={sprint.id} refresh={data.issues} />}
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    );
   return (
     <section className="sprint-points-panel">
       <button className="sprint-points-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>

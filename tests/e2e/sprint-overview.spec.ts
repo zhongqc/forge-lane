@@ -45,11 +45,24 @@ test('current sprint shows member points and history preserves rollover snapshot
     data: { type: 'BUG', title: '未分配未估点', sprintId: sprint.id },
   });
   await page.goto(`/projects/${project.key}/board`);
-  await page.getByRole('button', { name: /验收 Sprint 成员 Story Points/ }).click();
+  const pointsButton = page
+    .locator('.board-toolbar')
+    .getByRole('button', { name: '成员 Story Points', exact: true });
+  await expect(pointsButton).toBeVisible();
+  await expect(page.locator('.sprint-points-panel')).toHaveCount(0);
+  await pointsButton.click();
+  const pointsDrawer = page.getByRole('dialog', { name: '成员 Story Points', exact: true });
+  await expect(pointsDrawer).toContainText('验收 Sprint');
   const table = page.getByRole('table', { name: '成员 Story Point 统计' });
   await expect(table.getByRole('row').filter({ hasText: '迭代成员' })).toContainText('5');
   await expect(table.getByRole('row').filter({ hasText: '未分配' })).toBeVisible();
-  await page.screenshot({ path: info.outputPath('current-sprint-points.png') });
+  await page.screenshot({ path: info.outputPath('current-sprint-points.png'), animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  await expect(pointsDrawer).not.toBeVisible();
+  await expect(pointsButton).toBeFocused();
+  await pointsButton.click();
+  await page.getByRole('button', { name: '关闭成员统计', exact: true }).click();
+  await expect(pointsDrawer).not.toBeVisible();
   expect(
     (await page.request.post(`/api/sprints/${sprint.id}/complete`, { data: { version: 2 } })).ok(),
   ).toBeTruthy();

@@ -80,3 +80,33 @@
     flex-wrap: wrap;
   }
 }
+
+.sprint-points-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.sprint-points-drawer {
+  width: min(720px, 100vw);
+}
+.sprint-points-drawer .drawer-top {
+  height: 56px;
+  padding: 0 24px;
+}
+.sprint-points-drawer .drawer-top h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.sprint-points-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.sprint-points-context {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.sprint-points-body .sprint-overview-content {
+  padding: 0;
+}
