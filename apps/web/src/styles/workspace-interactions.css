@@ -182,7 +182,6 @@ button:disabled {
     border-radius: 6px;
   }
   .board-toolbar,
-  .expanded-filters,
   .list-toolbar {
     overflow: auto;
   }

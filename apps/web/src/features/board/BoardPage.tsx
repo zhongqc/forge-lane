@@ -15,7 +15,7 @@ import {
 import { CardContent } from './BoardCard';
 import { BoardColumn } from './BoardColumn';
 import { boardCollision, boardKeyboardCoordinates } from './board-dnd';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { runIssueCommand } from '../../lib/issue-mutations';
 import { Avatar, TypeIcon, SelectField, ErrorNotice, MultiSelect, priorityLabels } from '../../components/ui';
@@ -72,7 +72,6 @@ export function BoardPage({
       );
     }
   }, [search, quick, assignee, epic, statusFilters, priorityFilters, labelFilters, data.project.id]);
-  const [filters, setFilters] = useState(false);
   const [active, setActive] = useState<Issue | null>(null);
   const [target, setTarget] = useState<string>();
   const [insertBefore, setInsertBefore] = useState<string | null>();
@@ -341,10 +340,6 @@ export function BoardPage({
           <TypeIcon type="BUG" />
           Bug
         </button>
-        <button className={`filter-chip ${filters ? 'selected' : ''}`} onClick={() => setFilters(!filters)}>
-          <SlidersHorizontal size={14} />
-          筛选{quick.length > 0 && <span className="tiny-count">{quick.length}</span>}
-        </button>
         <div className="toolbar-spacer" />
         <CurrentSprintPoints data={data} presentation="drawer" />
         <div className="avatar-stack">
@@ -362,76 +357,83 @@ export function BoardPage({
           onChange={setScope}
         />
       </div>
-      {filters && (
-        <div className="expanded-filters">
-          {[
-            ['STORY', 'Story'],
-            ['TASK', 'Task'],
-            ['unassigned', '未分配'],
-            ['high', '高优先级'],
-            ['noestimate', '未估点'],
-          ].map(([v, l]) => (
-            <button
-              key={v}
-              className={`filter-chip ${quick.includes(v) ? 'selected' : ''}`}
-              onClick={() => toggle(v)}
-            >
-              {l}
-            </button>
-          ))}
-          <MultiSelect
-            label="负责人"
-            value={assignee}
-            options={[
-              { value: '', label: '所有负责人' },
-              ...data.members.map((m) => ({ value: m.id, label: m.name })),
-            ]}
-            onChange={setAssignee}
-          />
-          <MultiSelect
-            label="Epic"
-            value={epic}
-            options={[
-              { value: '', label: '所有 Epic' },
-              ...data.issues.filter((i) => i.type === 'EPIC').map((i) => ({ value: i.id, label: i.title })),
-            ]}
-            onChange={setEpic}
-          />
-          <MultiSelect
-            label="状态"
-            value={statusFilters}
-            onChange={setStatusFilters}
-            options={data.statuses.map((s) => ({ value: s.id, label: s.name }))}
-          />
-          <MultiSelect
-            label="优先级"
-            value={priorityFilters}
-            onChange={setPriorityFilters}
-            options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
-          />
-          <MultiSelect
-            label="标签"
-            value={labelFilters}
-            onChange={setLabelFilters}
-            options={data.labels.map((l) => ({ value: l.id, label: l.name }))}
-          />
+      <div className="board-filters" role="group" aria-label="筛选事项">
+        {[
+          ['STORY', 'Story'],
+          ['TASK', 'Task'],
+          ['unassigned', '未分配'],
+          ['high', '高优先级'],
+          ['noestimate', '未估点'],
+        ].map(([v, l]) => (
           <button
-            className="text-button"
-            onClick={() => {
-              setQuick([]);
-              setStatusFilters('');
-              setPriorityFilters('');
-              setLabelFilters('');
-              setAssignee('');
-              setEpic('');
-              setSearch('');
-            }}
+            key={v}
+            className={`filter-chip ${quick.includes(v) ? 'selected' : ''}`}
+            onClick={() => toggle(v)}
           >
-            <X size={12} />
-            清除筛选
+            {l}
           </button>
-        </div>
-      )}
+        ))}
+        <MultiSelect
+          label="负责人"
+          value={assignee}
+          options={[
+            { value: '', label: '所有负责人' },
+            ...data.members.map((m) => ({ value: m.id, label: m.name })),
+          ]}
+          onChange={setAssignee}
+        />
+        <MultiSelect
+          label="Epic"
+          value={epic}
+          options={[
+            { value: '', label: '所有 Epic' },
+            ...data.issues.filter((i) => i.type === 'EPIC').map((i) => ({ value: i.id, label: i.title })),
+          ]}
+          onChange={setEpic}
+        />
+        <MultiSelect
+          label="状态"
+          value={statusFilters}
+          onChange={setStatusFilters}
+          options={data.statuses.map((s) => ({ value: s.id, label: s.name }))}
+        />
+        <MultiSelect
+          label="优先级"
+          value={priorityFilters}
+          onChange={setPriorityFilters}
+          options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
+        />
+        <MultiSelect
+          label="标签"
+          value={labelFilters}
+          onChange={setLabelFilters}
+          options={data.labels.map((l) => ({ value: l.id, label: l.name }))}
+        />
+        <button
+          className="text-button"
+          disabled={
+            !search &&
+            !quick.length &&
+            !assignee &&
+            !epic &&
+            !statusFilters &&
+            !priorityFilters &&
+            !labelFilters
+          }
+          onClick={() => {
+            setQuick([]);
+            setStatusFilters('');
+            setPriorityFilters('');
+            setLabelFilters('');
+            setAssignee('');
+            setEpic('');
+            setSearch('');
+          }}
+        >
+          <X size={12} />
+          清除筛选
+        </button>
+      </div>
       <ErrorNotice error={error} />
       <DndContext
         sensors={sensors}

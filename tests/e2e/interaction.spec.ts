@@ -371,8 +371,10 @@ test('global creation is available across views without board creation buttons',
   );
 });
 
-test('board fills remaining height after resizing and expanding filters', async ({ page }) => {
+test('board fills remaining height after resizing with persistent filters', async ({ page }) => {
   await fixture(page);
+  await expect(page.getByRole('group', { name: '筛选事项' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '负责人', exact: true })).toBeVisible();
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 1050, height: 720 },
@@ -381,7 +383,7 @@ test('board fills remaining height after resizing and expanding filters', async 
   ]) {
     await page.setViewportSize(viewport);
     for (const expanded of [false, true]) {
-      if (expanded) await page.getByRole('button', { name: '筛选', exact: true }).click();
+      if (expanded) await page.getByRole('button', { name: '我的事项', exact: true }).click();
       await expect
         .poll(async () => {
           const bounds = await page.locator('.column-scroll').first().boundingBox();
@@ -393,7 +395,7 @@ test('board fills remaining height after resizing and expanding filters', async 
       expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
         viewport.height,
       );
-      if (expanded) await page.getByRole('button', { name: '筛选', exact: true }).click();
+      if (expanded) await page.getByRole('button', { name: '我的事项', exact: true }).click();
     }
   }
   await page.setViewportSize({ width: 1050, height: 400 });
