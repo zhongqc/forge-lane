@@ -473,3 +473,29 @@ test('avatar filters support multiple assignees and stay in sync with the dropdo
     await context.close();
   }
 });
+
+test('account menu is available in the header on desktop and mobile', async ({ page }) => {
+  await fixture(page);
+  await expect(page.locator('aside').getByText('体验成员', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('让好的想法，')).toHaveCount(0);
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const trigger = page.getByRole('banner').getByRole('button', { name: '账号菜单', exact: true });
+    await trigger.click();
+    const menu = page.getByRole('dialog', { name: '账号信息' });
+    await expect(menu).toContainText('体验成员');
+    await expect(menu).toContainText('工作区管理员');
+    await expect(menu.getByRole('button', { name: '退出登录' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+  }
+  await page.getByRole('button', { name: '账号菜单', exact: true }).click();
+  const logout = page.waitForResponse((response) => response.url().endsWith('/auth/logout'));
+  await page.getByRole('button', { name: '退出登录', exact: true }).click();
+  expect((await logout).ok()).toBeTruthy();
+  await expect(page.getByRole('button', { name: '登录工作区', exact: true })).toBeVisible();
+});
