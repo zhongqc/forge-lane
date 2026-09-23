@@ -410,12 +410,12 @@ a {
   top: 0;
   z-index: 15;
   background: #fff;
-  height: 61px;
+  height: 52px;
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 10px;
   font-size: 10px;
   color: #8d92a0;
 }
@@ -2074,7 +2074,7 @@ a {
   }
   .topbar {
     padding: 0 15px;
-    height: 50px;
+    height: 48px;
   }
   .topbar-hint {
     display: none;
