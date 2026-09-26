@@ -99,4 +99,9 @@ test('web offers the CLI binary for the selected platform', async ({ page }) => 
   );
   await expect(dialog).toContainText('0.1.0');
   await expect(dialog).toContainText('a'.repeat(64));
+  await page.getByRole('button', { name: '关闭' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const trigger = page.getByRole('button', { name: '下载 CLI' });
+  const bounds = await trigger.boundingBox();
+  expect(bounds && bounds.x + bounds.width <= 390).toBeTruthy();
 });

@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 
 const script = resolve('deploy/remote-deploy.sh');
 
-function runDeploy(failNewImage: boolean, requireSudo = false, failPull = false) {
+function runDeploy(failNewImage: boolean, requireSudo = false, failPull = false, failPublicHealth = false) {
   const dir = mkdtempSync(join(tmpdir(), 'forge-deploy-'));
   const bin = join(dir, 'bin');
   const log = join(dir, 'docker.log');
@@ -35,6 +35,11 @@ esac
     '#!/bin/sh\n[ "$1" = -n ] || exit 2\nshift\nunset IMAGE_TAG IMAGE_REPOSITORY\nMOCK_VIA_SUDO=1 exec "$@"\n',
   );
   chmodSync(join(bin, 'sudo'), 0o755);
+  writeFileSync(
+    join(bin, 'curl'),
+    '#!/bin/sh\nprintf "curl %s\\n" "$*" >> "$MOCK_DOCKER_LOG"\n[ "$MOCK_PUBLIC_HEALTH_FAIL" != 1 ]\n',
+  );
+  chmodSync(join(bin, 'curl'), 0o755);
   const result = spawnSync('sh', [script], {
     cwd: dir,
     env: {
@@ -42,8 +47,10 @@ esac
       PATH: `${bin}:${process.env.PATH}`,
       IMAGE_TAG: 'new',
       IMAGE_REPOSITORY: 'registry.example.test/team/forge-lane',
+      PUBLIC_HEALTH_URL: 'https://example.test/forge/api/health',
       MOCK_FAIL_NEW: failNewImage ? '1' : '0',
       MOCK_PULL_FAIL: failPull ? '1' : '0',
+      MOCK_PUBLIC_HEALTH_FAIL: failPublicHealth ? '1' : '0',
       MOCK_REQUIRE_SUDO: requireSudo ? '1' : '0',
       MOCK_DOCKER_LOG: log,
     },
@@ -73,6 +80,18 @@ void test('restores the previous image when the release is unhealthy', () => {
     commands,
     /forge-lane rollback compose -f compose\.prod\.yaml up -d --wait --wait-timeout 180/,
   );
+});
+
+void test('restores the previous image when the public endpoint is unhealthy', () => {
+  const { result, commands } = runDeploy(false, false, false, true);
+  assert.notEqual(result.status, 0);
+  assert.match(commands, /curl .*https:\/\/example\.test\/forge\/api\/health/);
+  assert.match(commands, /tag sha256:old-image forge-lane:rollback/);
+  assert.match(
+    commands,
+    /forge-lane rollback compose -f compose\.prod\.yaml up -d --wait --wait-timeout 180/,
+  );
+  assert.doesNotMatch(commands, /tag registry\.example\.test\/team\/forge-lane:new forge-lane:latest/);
 });
 
 void test('deploys when Docker requires passwordless sudo', () => {

@@ -88,8 +88,4 @@ jobs:
           scp "${ssh_options[@]}" compose.prod.yaml "$target:$DEPLOY_PATH/compose.prod.yaml.next"
           scp "${ssh_options[@]}" deploy/remote-deploy.sh "$target:$DEPLOY_PATH/remote-deploy.sh"
           ssh "${ssh_options[@]}" "$target" "sudo -n install -m 644 '$DEPLOY_PATH/compose.prod.yaml.next' '$DEPLOY_PATH/compose.prod.yaml' && rm '$DEPLOY_PATH/compose.prod.yaml.next'"
-          ssh "${ssh_options[@]}" "$target" "cd '$DEPLOY_PATH' && IMAGE_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$GITHUB_SHA' sh remote-deploy.sh"
-
-      - name: Check public endpoint
-        shell: bash
-        run: curl --fail --silent --show-error --retry 5 --retry-delay 3 "https://${DEPLOY_HOST}/forge/api/health"
+          ssh "${ssh_options[@]}" "$target" "cd '$DEPLOY_PATH' && IMAGE_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$GITHUB_SHA' PUBLIC_HEALTH_URL='https://${DEPLOY_HOST}/forge/api/health' sh remote-deploy.sh"
