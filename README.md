@@ -60,6 +60,8 @@ docker compose --profile app up -d --build
 
 正式部署时设置独立数据库密码、实际 `APP_URL`，在 HTTPS 反向代理后设置 `COOKIE_SECURE=true`，并自行配置数据库备份和保留策略。应用不自动创建演示账号。认证使用随机不透明会话 token（数据库仅保存 SHA-256 摘要），不依赖伪设的 JWT secret。
 
+GitHub Release 的自动部署配置见 [发布部署](docs/deployment.md)。
+
 ## 数据与 Agent 接入边界
 
 Schema 在 `packages/db/prisma/schema.prisma`，迁移在其 `migrations/` 子目录。Issue 当前状态与 Activity 在同一事务写入；描述和评论保留不可变修订；Activity 保留 Actor 名称快照、来源、请求标识和 schemaVersion。

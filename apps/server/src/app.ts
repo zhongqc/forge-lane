@@ -66,7 +66,7 @@ export async function createApp() {
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const origin = req.headers.origin;
-      const allowed = process.env.APP_URL ?? 'http://localhost:5173';
+      const allowed = new URL(process.env.APP_URL ?? 'http://localhost:5173').origin;
       if ((origin && origin !== allowed) || req.headers['sec-fetch-site'] === 'cross-site')
         return res.status(403).json({ code: 'CSRF', message: '请求来源不被允许' });
     }

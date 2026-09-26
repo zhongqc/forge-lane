@@ -1,0 +1,84 @@
+name: Deploy release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-lane-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: ${{ !github.event.release.prerelease }}
+    uses: ./.github/workflows/check.yml
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      REGISTRY_USER: ${{ secrets.ALIYUN_REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+      IMAGE_REPOSITORY: crpi-2ltdt72vjx67mm0n.cn-beijing.personal.cr.aliyuncs.com/qichao-private/forge
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate deployment settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS DEPLOY_PATH REGISTRY_USER REGISTRY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing $name" >&2
+              exit 1
+            fi
+          done
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PATH" =~ ^/[A-Za-z0-9._/-]+$ && "$DEPLOY_PATH" != *..* ]]
+          [[ "$REGISTRY_USER" =~ ^[A-Za-z0-9_@.+-]+$ ]]
+
+      - name: Build production image
+        run: docker build --build-arg FORGE_BASE_PATH=/forge/ -t "${IMAGE_REPOSITORY}:${GITHUB_SHA}" .
+
+      - name: Push image to Aliyun registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$REGISTRY_PASSWORD" | docker login "${IMAGE_REPOSITORY%%/*}" --username "$REGISTRY_USER" --password-stdin
+          docker push "${IMAGE_REPOSITORY}:${GITHUB_SHA}"
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/forge-deploy-key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Pull image and deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh_options=(-i ~/.ssh/forge-deploy-key -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          ssh "${ssh_options[@]}" "$target" "mkdir -p -- '$DEPLOY_PATH'"
+          printf '%s' "$REGISTRY_PASSWORD" | ssh "${ssh_options[@]}" "$target" "sudo -n docker login '${IMAGE_REPOSITORY%%/*}' --username '$REGISTRY_USER' --password-stdin"
+          scp "${ssh_options[@]}" compose.prod.yaml "$target:$DEPLOY_PATH/compose.prod.yaml.next"
+          scp "${ssh_options[@]}" deploy/remote-deploy.sh "$target:$DEPLOY_PATH/remote-deploy.sh"
+          ssh "${ssh_options[@]}" "$target" "sudo -n install -m 644 '$DEPLOY_PATH/compose.prod.yaml.next' '$DEPLOY_PATH/compose.prod.yaml' && rm '$DEPLOY_PATH/compose.prod.yaml.next'"
+          ssh "${ssh_options[@]}" "$target" "cd '$DEPLOY_PATH' && IMAGE_REPOSITORY='$IMAGE_REPOSITORY' IMAGE_TAG='$GITHUB_SHA' sh remote-deploy.sh"
+
+      - name: Check public endpoint
+        shell: bash
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 3 "https://${DEPLOY_HOST}/forge/api/health"

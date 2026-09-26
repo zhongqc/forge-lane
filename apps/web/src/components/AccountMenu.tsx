@@ -31,7 +31,11 @@ export function AccountMenu({ account }: { account?: { actor: Actor; email: stri
   async function upload(file: File) {
     const body = new FormData();
     body.append('file', file);
-    const response = await fetch('/api/me/avatar', { method: 'POST', body, credentials: 'same-origin' });
+    const response = await fetch(`${import.meta.env.BASE_URL}api/me/avatar`, {
+      method: 'POST',
+      body,
+      credentials: 'same-origin',
+    });
     const result = await response.json();
     if (response.status === 401) window.dispatchEvent(new Event('forge:auth-expired'));
     if (!response.ok) throw new ApiError(response.status, result.message || '头像上传失败', result.code);
@@ -72,7 +76,7 @@ export function AccountMenu({ account }: { account?: { actor: Actor; email: stri
               onClick={() =>
                 void api('/auth/logout', 'POST').then(() => {
                   qc.clear();
-                  window.location.assign('/');
+                  window.location.assign(import.meta.env.BASE_URL);
                 })
               }
             >

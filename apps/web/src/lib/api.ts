@@ -14,7 +14,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown, key?:
     key = pendingKeys.get(signature) ?? key ?? crypto.randomUUID();
     pendingKeys.set(signature, key);
   }
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${import.meta.env.BASE_URL}api${path}`, {
     method,
     credentials: 'same-origin',
     headers: {

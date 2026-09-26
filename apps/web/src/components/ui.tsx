@@ -170,7 +170,7 @@ export function Avatar({
       {actor?.id && actor.avatarKey ? (
         <img
           key={actor.avatarKey}
-          src={`/api/actors/${actor.id}/avatar?v=${encodeURIComponent(actor.avatarKey)}`}
+          src={`${import.meta.env.BASE_URL}api/actors/${actor.id}/avatar?v=${encodeURIComponent(actor.avatarKey)}`}
           alt=""
           onError={(event) => {
             event.currentTarget.style.display = 'none';

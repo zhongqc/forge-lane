@@ -119,9 +119,12 @@ export function IssueDrawer({
   }
   useEffect(() => {
     if (!dirty) return;
-    const path = window.location.pathname;
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const relativePath = (pathname: string) =>
+      base && pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : pathname;
+    const path = relativePath(window.location.pathname);
     const back = () => {
-      const destination = window.location.pathname;
+      const destination = relativePath(window.location.pathname);
       void navigate(path, { replace: true });
       pendingNavigation.current = () => {
         void navigate(destination);

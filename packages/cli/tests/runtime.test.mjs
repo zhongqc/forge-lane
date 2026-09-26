@@ -5,23 +5,43 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { serverUrl, exact, integer } from '../src/runtime.mjs';
+import { serverUrl, Client, exact, integer } from '../src/runtime.mjs';
 
 await test('server URL normalization permits local HTTP and requires remote HTTPS', () => {
   assert.equal(serverUrl('http://localhost:3001/'), 'http://localhost:3001');
   assert.equal(serverUrl('http://127.0.0.1:3001'), 'http://127.0.0.1:3001');
   assert.equal(serverUrl('http://[::1]:3001'), 'http://[::1]:3001');
   assert.equal(serverUrl('https://forge.example/'), 'https://forge.example');
+  assert.equal(serverUrl('https://forge.example/forge/'), 'https://forge.example/forge');
   for (const url of [
     'http://forge.example',
     'https://user:password@forge.example',
     'https://forge.example/api',
+    'https://forge.example/forge/api',
     'https://forge.example?token=secret',
     'https://forge.example/#fragment',
     'file:///tmp/file',
     'invalid',
   ])
     assert.throws(() => serverUrl(url));
+});
+
+await test('client sends API requests beneath a deployed site path', async () => {
+  const paths = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    paths.push(url);
+    return new Response(JSON.stringify({ actor: { id: 'demo' } }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  try {
+    const client = new Client('https://forge.example/forge/');
+    assert.deepEqual(await client.request('/auth/whoami'), { actor: { id: 'demo' } });
+    assert.deepEqual(paths, ['https://forge.example/forge/api/auth/whoami']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 await test('reference matching requires one exact match and integer arguments are bounded', () => {

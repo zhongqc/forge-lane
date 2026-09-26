@@ -1,4 +1,7 @@
 FROM node:24-bookworm-slim AS build
+ARG APT_MIRROR=deb.debian.org
+ARG FORGE_BASE_PATH=/forge/
+RUN sed -i "s|deb.debian.org|${APT_MIRROR}|g" /etc/apt/sources.list.d/debian.sources
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@11.9.0
 WORKDIR /app
@@ -11,7 +14,7 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/cli/package.json packages/cli/package.json
 RUN --mount=type=cache,id=forge-pnpm,target=/pnpm/store SKIP_INSTALL_SIMPLE_GIT_HOOKS=1 pnpm install --frozen-lockfile --store-dir /pnpm/store --network-concurrency=8 --fetch-timeout=600000
 COPY . .
-RUN pnpm db:generate && pnpm build
+RUN pnpm db:generate && FORGE_BASE_PATH=${FORGE_BASE_PATH} pnpm build
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001
 EXPOSE 3001
 CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/server/apps/server/src/main.js"]

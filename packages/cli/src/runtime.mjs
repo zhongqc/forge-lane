@@ -22,8 +22,9 @@ export function serverUrl(raw) {
     throw new CliError('服务地址不能包含凭据、查询或片段');
   if (url.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
     throw new CliError('远程服务必须使用 HTTPS');
-  if (url.pathname !== '/') throw new CliError('请填写站点根地址，不要包含 /api 或页面路径');
-  return url.origin;
+  const basePath = url.pathname.replace(/\/+$/, '');
+  if (/(^|\/)api(?:\/|$)/i.test(basePath)) throw new CliError('请填写应用访问地址，不要包含 /api 路径');
+  return url.origin + basePath;
 }
 const directory = () => process.env.FORGE_CONFIG_DIR || join(homedir(), '.config', 'forge');
 export async function readConfig() {

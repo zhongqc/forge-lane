@@ -1,0 +1,50 @@
+name: forge-lane-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: forge
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U forge -d forge']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: ${IMAGE_REPOSITORY:-forge-lane}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+      - path: .env.oss
+        required: false
+    environment:
+      DATABASE_URL: postgresql://forge:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/forge
+      APP_URL: ${APP_URL:?Set APP_URL in .env}
+      COOKIE_SECURE: 'true'
+      HOST: 0.0.0.0
+      PORT: '3001'
+    ports:
+      - '127.0.0.1:3001:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
