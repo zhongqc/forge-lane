@@ -311,7 +311,7 @@ export function BoardPage({
       <div className="page-heading">
         <div>
           <h1>
-            看板 <span>{data.issues.filter((i) => ['STORY', 'TASK', 'BUG'].includes(i.type)).length}</span>
+            看板 <span>{visible.length}</span>
           </h1>
         </div>
       </div>

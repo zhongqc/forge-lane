@@ -1,8 +1,8 @@
 import { useState, useRef, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Modal, SelectField, TypeIcon, ErrorNotice, typeLabels } from '../../components/ui';
+import { Modal, SelectField, TypeIcon, ErrorNotice, typeLabels, priorityLabels } from '../../components/ui';
 import { api } from '../../lib/api';
-import type { BoardData, Issue, IssueType } from '../../../../../packages/shared/src/contracts';
+import type { BoardData, Issue, IssueType, Priority } from '../../../../../packages/shared/src/contracts';
 const MarkdownComposer = lazy(() => import('../editor/MarkdownComposer'));
 export function CreateIssueDialog({
   data,
@@ -37,11 +37,23 @@ export function CreateIssueDialog({
   const [assignee, setAssignee] = useState('');
   const [epic, setEpic] = useState('');
   const [sprint, setSprint] = useState(initialSprintId ?? '');
+  const [priority, setPriority] = useState<Priority>('NONE');
+  const [estimate, setEstimate] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
   const [again, setAgain] = useState(false);
   async function submit() {
     if (busy || !title.trim()) return;
+    const points = estimate === '' ? null : Number(estimate);
+    if (
+      type !== 'EPIC' &&
+      type !== 'SUBTASK' &&
+      points !== null &&
+      (!Number.isFinite(points) || points < 0 || points > 100000)
+    ) {
+      setError(new Error('Story Points 需为 0 到 100000 之间的数字'));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -49,8 +61,10 @@ export function CreateIssueDialog({
         title: title.trim(),
         description,
         type,
+        priority,
         statusId: status,
         assigneeId: assignee || null,
+        ...(type !== 'EPIC' && type !== 'SUBTASK' ? { estimate: points } : {}),
         ...(parentId
           ? { parentId }
           : type !== 'EPIC'
@@ -138,6 +152,27 @@ export function CreateIssueDialog({
               ]}
               onChange={setAssignee}
             />
+            <SelectField
+              label="优先级"
+              value={priority}
+              options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
+              onChange={(value) => setPriority(value as Priority)}
+            />
+            {type !== 'EPIC' && type !== 'SUBTASK' && (
+              <label className="create-estimate">
+                Story Points
+                <input
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="any"
+                  value={estimate}
+                  onChange={(event) => setEstimate(event.target.value)}
+                  placeholder="未估点"
+                  aria-label="Story Points"
+                />
+              </label>
+            )}
             {!parentId && type !== 'EPIC' && (
               <>
                 <SelectField

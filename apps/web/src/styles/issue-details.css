@@ -90,6 +90,18 @@
 .create-fields .select-trigger {
   border: 1px solid #e9ebf1;
 }
+.create-estimate {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #666e80;
+}
+.create-estimate input {
+  width: 86px;
+  min-height: 29px;
+  padding: 5px 7px;
+}
 .drawer-overlay {
   background: #252b3c1c;
   z-index: 40;

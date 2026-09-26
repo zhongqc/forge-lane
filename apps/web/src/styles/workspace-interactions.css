@@ -331,10 +331,10 @@ button:disabled {
   white-space: nowrap;
   border-radius: 4px;
   padding: 2px 5px;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.4;
   background: #eef0f5;
-  color: #657086;
+  color: #4f5b70;
 }
 .card-status.category-IN_PROGRESS {
   color: #7160b2;
@@ -343,6 +343,42 @@ button:disabled {
 .card-status.category-DONE {
   color: #417d66;
   background: #e8f5ed;
+}
+.cli-download-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  color: #554aa4;
+  background: #f1effc;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cli-download-dialog {
+  padding: 18px 22px 24px;
+  font-size: 12px;
+}
+.cli-download-list {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+.cli-download-file {
+  display: grid;
+  gap: 4px;
+}
+.cli-download-file a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  color: #493da3;
+  font-weight: 600;
+}
+.cli-download-file small {
+  color: #667085;
+  overflow-wrap: anywhere;
 }
 .is-receiving .column-scroll {
   opacity: 0.16;

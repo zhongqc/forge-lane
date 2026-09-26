@@ -68,18 +68,18 @@
   min-width: 0;
 }
 .backlog-title .issue-key {
-  font-size: 9px;
+  font-size: 10px;
 }
 .backlog-row .select-trigger {
-  font-size: 9px;
+  font-size: 10px;
   max-width: 120px;
 }
 .epic-pill {
-  color: #a291b5;
+  color: #67517c;
   background: #f7f3fa;
   padding: 3px 6px;
   border-radius: 4px;
-  font-size: 8px;
+  font-size: 11px;
   max-width: 110px;
   overflow: hidden;
   white-space: nowrap;
@@ -87,8 +87,8 @@
 }
 .status-pill {
   font-style: normal;
-  font-size: 8px;
-  color: #9294a7;
+  font-size: 11px;
+  color: #596475;
   background: #f5f5f9;
   padding: 4px 6px;
   border-radius: 4px;

@@ -1,6 +1,6 @@
 # 发布部署
 
-发布一个非预发布版的 GitHub Release 后，`.github/workflows/deploy.yml` 先运行仓库的完整检查，再构建与该 Release 提交对应的 Docker 镜像，推送到阿里云个人镜像仓库。工作流通过 SSH 将 `compose.prod.yaml` 和部署脚本传到现有服务器，由服务器拉取该镜像，运行 Compose 并等待服务健康，最后检查公开的 `/forge/api/health` 地址。预发布版不会部署。
+发布一个非预发布版的 GitHub Release 后，`.github/workflows/deploy.yml` 先运行仓库的完整检查，再构建五个平台的 Forge CLI 压缩包和与该 Release 提交对应的 Docker 镜像，推送到阿里云个人镜像仓库。工作流通过 SSH 将 `compose.prod.yaml` 和部署脚本传到现有服务器，由服务器拉取该镜像，运行 Compose 并等待服务健康，最后检查公开的 `/forge/api/health` 地址。CLI 下载文件随生产镜像从本站 `/forge/downloads/` 提供。预发布版不会部署。
 
 ## 首次配置
 

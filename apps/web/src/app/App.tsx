@@ -1,4 +1,5 @@
 import { AccountMenu } from '../components/AccountMenu';
+import { CliDownload } from '../components/CliDownload';
 import { NotificationInbox } from '../features/mentions/NotificationInbox';
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -244,6 +245,7 @@ export function App() {
           <span className="breadcrumb-slash">/</span>
           <span>{nav.find((n) => n.id === view)?.name}</span>
           <div className="toolbar-spacer" />
+          <CliDownload />
           <NotificationInbox />
           <button
             className="primary global-create"

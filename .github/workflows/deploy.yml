@@ -31,6 +31,9 @@ jobs:
       IMAGE_REPOSITORY: crpi-2ltdt72vjx67mm0n.cn-beijing.personal.cr.aliyuncs.com/qichao-private/forge
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
 
       - name: Validate deployment settings
         shell: bash
@@ -46,6 +49,14 @@ jobs:
           [[ "$DEPLOY_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
           [[ "$DEPLOY_PATH" =~ ^/[A-Za-z0-9._/-]+$ && "$DEPLOY_PATH" != *..* ]]
           [[ "$REGISTRY_USER" =~ ^[A-Za-z0-9_@.+-]+$ ]]
+
+      - name: Build CLI downloads
+        run: |
+          node scripts/build-cli.mjs
+          unzip -p apps/web/public/downloads/forge-linux-x64.zip > /tmp/forge-cli-smoke
+          chmod +x /tmp/forge-cli-smoke
+          /tmp/forge-cli-smoke --version
+          /tmp/forge-cli-smoke skill print >/dev/null
 
       - name: Build production image
         run: docker build --build-arg FORGE_BASE_PATH=/forge/ -t "${IMAGE_REPOSITORY}:${GITHUB_SHA}" .
