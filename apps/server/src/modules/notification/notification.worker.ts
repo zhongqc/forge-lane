@@ -125,7 +125,8 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
         )
           continue;
         const issueKey = `${event.issue.project.key}-${event.issue.number}`;
-        const url = new URL(`/issues/${issueKey}`, process.env.APP_URL || 'http://localhost:5173');
+        const base = (process.env.APP_URL || 'http://localhost:5173').replace(/\/?$/, '/');
+        const url = new URL(`issues/${issueKey}`, base);
         if (event.commentId) url.hash = `comment-${event.commentId}`;
         await this.email.send({
           id: event.id,

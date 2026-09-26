@@ -17,6 +17,8 @@ forge whoami --json
 
 自动化可以使用 `--password-stdin` 或 `--token-stdin`，从安全的凭据工具通过标准输入传入。不要把密码或令牌放在命令行参数或任务描述里。远程地址必须为 HTTPS，本机允许 HTTP。
 
+如果应用部署在子路径下，`--server` 填应用访问地址，例如 `https://8.141.3.78/forge`；CLI 会请求该地址下的 `/api`。不要把 `/api` 加在 `--server` 后面。
+
 ## 本地 Codex 开发流程
 
 ```sh
