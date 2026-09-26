@@ -34,6 +34,11 @@
   }
 }
 @media (max-width: 760px) {
+  .mobile-version {
+    display: inline;
+    color: #a3a6b2;
+    font-size: 9px;
+  }
   .sidebar {
     display: none;
   }
