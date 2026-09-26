@@ -319,6 +319,15 @@ a {
 .sidebar nav button:hover {
   background: #eeedf5;
 }
+.sidebar-version {
+  margin-top: auto;
+  padding: 12px 10px 0;
+  color: #a3a6b2;
+  font-size: 10px;
+}
+.mobile-version {
+  display: none;
+}
 .nav-dot {
   width: 5px;
   height: 5px;
