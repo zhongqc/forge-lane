@@ -72,9 +72,12 @@ test('project member mentions persist from creation, description and comments an
   await expect(page.getByRole('listbox', { name: '提及项目成员' })).toBeVisible();
   await comment.press('Escape');
   await expect(page.getByRole('listbox', { name: '提及项目成员' })).toHaveCount(0);
-  await comment.fill('@提及接收');
   await expect(comment).toHaveText('@提及接收');
+  await comment.press('Backspace');
+  await expect(comment).toHaveText('@提及接');
+  await expect(page.getByRole('option', { name: /提及接收人/ })).toBeVisible();
   await comment.fill('评论 @提及接收');
+  await expect(page.getByRole('option', { name: /提及接收人/ })).toBeVisible();
   await comment.press('ArrowDown');
   await comment.press('Enter');
   await expect(comment.locator('a')).toHaveText('@提及接收人');
