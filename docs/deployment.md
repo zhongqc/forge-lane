@@ -30,7 +30,7 @@
 
 ## 自动准备版本
 
-`.github/workflows/release-please.yml` 在变更合入 `main` 后运行 release-please，也可在 GitHub Actions 中手动运行。它为整个 Forge Lane 维护**一个产品版本**：根目录 `.release-please-manifest.json`、`apps/web/package.json`、`apps/server/package.json` 和 `packages/cli/package.json` 使用相同版本。发布 PR 更新这些文件及根目录 `CHANGELOG.md`；合并发布 PR 后生成 `vX.Y.Z` tag 和正式 GitHub Release，Release notes 来自同一批变更。CLI 下载清单读取 CLI 包版本，因此随该版本一起更新。`pnpm-lock.yaml` 不记录工作区包自身的版本，无需随版本号修改。
+`.github/workflows/release-please.yml` 在变更合入 `main` 后运行仓库锁定版本的 `release-please` npm 包，也可在 GitHub Actions 中手动运行。工作流依次调用 `pnpm exec release-please github-release` 和 `pnpm exec release-please release-pr`：先为已合并的发布 PR 创建 GitHub Release，再创建或更新下一份发布 PR。它为整个 Forge Lane 维护**一个产品版本**：根目录 `.release-please-manifest.json`、`apps/web/package.json`、`apps/server/package.json` 和 `packages/cli/package.json` 使用相同版本。发布 PR 更新这些文件及根目录 `CHANGELOG.md`；合并发布 PR 后生成 `vX.Y.Z` tag 和正式 GitHub Release，Release notes 来自同一批变更。CLI 下载清单读取 CLI 包版本，因此随该版本一起更新。`pnpm-lock.yaml` 不记录工作区包自身的版本，无需随版本号修改。
 
 提交进入发布记录需要使用 Conventional Commits。合并 PR 时保留符合规范的提交或使用符合规范的 squash 标题，例如 `feat: ...` 归入新功能、`fix: ...` 归入修复；破坏性变更使用 `!` 或 `BREAKING CHANGE:` 正文。普通 `chore:`、`docs:`、`test:` 默认不触发版本升级。发布 PR 汇总自上次发布以来的有效变更，审阅版本号和 `CHANGELOG.md` 后再合并；不要手工改动 manifest 或发布 PR 中的版本号。
 
