@@ -79,7 +79,8 @@
 .select-trigger:hover {
   background: #f2f3f8;
 }
-.select-trigger > span {
+.select-trigger > .select-label {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -132,8 +133,9 @@
   padding: 8px;
   border-radius: 5px;
 }
-.select-menu [role='option'] > span:not(.avatar) {
+.select-menu [role='option'] > .select-option-label {
   flex: 1;
+  min-width: 0;
   text-align: left;
 }
 .select-menu [role='option']:hover,

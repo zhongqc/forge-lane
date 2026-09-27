@@ -130,6 +130,30 @@ test('reporter defaults to creator and can be selected during creation and editi
     await context.close();
   }
 });
+test('dropdown option icons keep their size in create and detail views', async ({ page }) => {
+  const { issue } = await fixture(page);
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  const create = page.getByRole('dialog', { name: '新建事项' });
+  await create.getByRole('button', { name: '事项类型' }).click();
+  const createIcon = page
+    .getByRole('listbox', { name: '事项类型' })
+    .getByRole('option')
+    .first()
+    .locator('.type-icon');
+  expect((await createIcon.boundingBox())!.width).toBeLessThanOrEqual(20);
+  await page.keyboard.press('Escape');
+  await create.getByRole('button', { name: '取消' }).click();
+
+  await page.getByRole('button', { name: issue.title, exact: true }).click();
+  const detail = page.getByRole('dialog', { name: '事项详情' });
+  await detail.getByRole('button', { name: '状态', exact: true }).click();
+  const statusIcon = page
+    .getByRole('listbox', { name: '状态' })
+    .getByRole('option')
+    .first()
+    .locator('.status-dot');
+  expect((await statusIcon.boundingBox())!.width).toBeLessThanOrEqual(10);
+});
 test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
   const { issue, board } = await fixture(page);
   let count = 0;
