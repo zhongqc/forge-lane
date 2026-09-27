@@ -58,6 +58,26 @@ test('assignee menu avatars stay circular and aligned at desktop and narrow widt
     await page.getByRole('button', { name: '关闭详情', exact: true }).click();
   }
 });
+test('new workflow status can be placed in the testing board column', async ({ page }) => {
+  const { project } = await fixture(page);
+  await page.goto(`/projects/${project.key}/settings`);
+  const form = page
+    .locator('section.settings-card')
+    .filter({ has: page.getByRole('heading', { name: '工作流与看板映射' }) })
+    .locator('form');
+  await form.getByPlaceholder('新状态名称').fill('待测试确认');
+  await form.getByLabel('新状态分类').selectOption('IN_PROGRESS');
+  await form.getByLabel('新状态所在列').selectOption({ label: '测试中' });
+  await form.getByRole('button', { name: '添加状态' }).click();
+  await expect(page.getByText('已保存')).toBeVisible();
+
+  const board = await (await page.request.get(`/api/projects/${project.id}/board`)).json();
+  const status = board.statuses.find((item: { name: string }) => item.name === '待测试确认');
+  expect(status.category).toBe('IN_PROGRESS');
+  expect(board.columns.find((column: { name: string }) => column.name === '测试中').statuses).toEqual(
+    expect.arrayContaining([expect.objectContaining({ statusId: status.id })]),
+  );
+});
 test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
   const { issue, board } = await fixture(page);
   let count = 0;
