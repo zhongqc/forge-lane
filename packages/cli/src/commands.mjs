@@ -179,6 +179,8 @@ export const commands = {
     description: '输出本地Codex任务工作流SKILL.md模板',
   },
 };
+import cliPackage from '../package.json' with { type: 'json' };
+
 export const stringOptions =
   'server project email workspace name expires-in-days status assigned-to type priority sprint epic search limit offset title description-file assignee parent estimate labels if-version idempotency-key to body-file cursor revision executor lease-minutes issue outcome summary-file pr-url'.split(
     ' ',
@@ -192,7 +194,7 @@ export function help(command) {
       .filter(Boolean)
       .map((k) => '--' + k)
       .join(' ')}\n全局：--server URL --project KEY --json --help\n`;
-  return `Forge Lane CLI 0.1.0\n\n${Object.values(commands)
+  return `Forge Lane CLI ${cliPackage.version}\n\n${Object.values(commands)
     .map((c) => `${c.usage}\n  ${c.description}`)
     .join(
       '\n',
