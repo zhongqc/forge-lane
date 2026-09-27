@@ -32,7 +32,7 @@ const create = async (title: string, statusId: string): Promise<Issue> =>
   (await agent.post(`/api/projects/${projectId}/issues`).send({ type: 'TASK', title, statusId }).expect(201))
     .body;
 it('ranks across different statuses within one column without changing status or backlog order', async () => {
-  const column = board.columns[0];
+  const column = board.columns[1];
   const a = await create('当前事项', column.statuses[0].statusId);
   const b = await create('相同列另一状态', column.statuses[1].statusId);
   const result = (

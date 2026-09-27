@@ -9,10 +9,7 @@ import type { CreateProjectDto, UpdateProjectDto, MemberDto, LabelDto, StatusDto
 export const DEFAULT_COLUMNS = [
   {
     name: '待办',
-    statuses: [
-      ['Todo', 'TODO'],
-      ['Ready', 'TODO'],
-    ],
+    statuses: [['Todo', 'TODO']],
   },
   {
     name: '开发中',
@@ -208,6 +205,12 @@ export class ProjectService {
       if (await tx.issue.count({ where: { statusId } })) fail(422, '此状态仍被事项使用，请先移动这些事项');
       if ((await tx.status.count({ where: { projectId: id } })) <= 1) fail(422, '至少保留一个状态');
       const removed = await tx.status.delete({ where: { id: statusId } });
+      const remaining = await tx.status.findMany({ where: { projectId: id }, orderBy: { sortOrder: 'asc' } });
+      for (const [sortOrder, status] of remaining.entries()) {
+        if (status.sortOrder === sortOrder) continue;
+        await tx.status.update({ where: { id: status.id }, data: { sortOrder } });
+        await tx.boardColumnStatus.update({ where: { statusId: status.id }, data: { sortOrder } });
+      }
       await this.activity.append(tx, c, id, null, 'WORKFLOW_STATUS_DELETED', {
         statusId,
         name: removed.name,
