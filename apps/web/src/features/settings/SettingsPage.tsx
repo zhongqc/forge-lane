@@ -197,7 +197,7 @@ export function SettingsPage({ data }: { data: BoardData }) {
             </div>
           ))}
           <form
-            className="inline-form"
+            className="inline-form status-create-form"
             onSubmit={(e) => {
               e.preventDefault();
               const f = new FormData(e.currentTarget);
@@ -205,7 +205,7 @@ export function SettingsPage({ data }: { data: BoardData }) {
                 version: data.project.version,
                 name: f.get('name'),
                 category: f.get('category'),
-                columnId: data.columns[0].id,
+                columnId: f.get('columnId'),
               });
             }}
           >
@@ -214,6 +214,13 @@ export function SettingsPage({ data }: { data: BoardData }) {
               <option value="TODO">待办</option>
               <option value="IN_PROGRESS">进行中</option>
               <option value="DONE">完成</option>
+            </select>
+            <select name="columnId" aria-label="新状态所在列" required>
+              {data.columns.map((column) => (
+                <option key={column.id} value={column.id}>
+                  {column.name}
+                </option>
+              ))}
             </select>
             <button className="secondary" disabled={busy}>
               <Plus size={14} />
