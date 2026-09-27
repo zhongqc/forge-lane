@@ -24,6 +24,25 @@
 
 ## 发布与恢复
 
-将工作流、生产 Compose 文件和部署脚本合入默认分支后，创建指向该提交或后续提交的正式 GitHub Release。部署按发布提交的 SHA 给镜像打标签，同一时间只执行一个生产部署。部署过程中不删除 PostgreSQL 卷，也不替换服务器上的 `.env`。
+将工作流、生产 Compose 文件和部署脚本合入默认分支后，按下方发布流程合并 release-please 发布 PR，由它创建正式 GitHub Release。部署按发布提交的 SHA 给镜像打标签，同一时间只执行一个生产部署。部署过程中不删除 PostgreSQL 卷，也不替换服务器上的 `.env`。
 
 新容器未通过 Compose 健康检查或公开地址检查时，脚本尝试恢复上一版应用镜像，并使工作流失败。应用启动时会执行 Prisma 迁移；镜像回滚不会自动回滚数据库结构。公开地址检查失败时还需查看服务器上的 Nginx 和应用日志。可在 GitHub Actions 的 **Deploy release** 运行记录中查看具体步骤。
+
+## 自动准备版本
+
+`.github/workflows/release-please.yml` 在变更合入 `main` 后运行仓库锁定版本的 `release-please` npm 包，也可在 GitHub Actions 中手动运行。工作流依次调用 `pnpm exec release-please github-release` 和 `pnpm exec release-please release-pr`：先为已合并的发布 PR 创建 GitHub Release，再创建或更新下一份发布 PR。它为整个 Forge Lane 维护**一个产品版本**：根目录 `.release-please-manifest.json`、`apps/web/package.json`、`apps/server/package.json` 和 `packages/cli/package.json` 使用相同版本。发布 PR 更新这些文件及根目录 `CHANGELOG.md`；合并发布 PR 后生成 `vX.Y.Z` tag 和正式 GitHub Release，Release notes 来自同一批变更。CLI 下载清单读取 CLI 包版本，因此随该版本一起更新。`pnpm-lock.yaml` 不记录工作区包自身的版本，无需随版本号修改。
+
+提交进入发布记录需要使用 Conventional Commits。合并 PR 时保留符合规范的提交或使用符合规范的 squash 标题，例如 `feat: ...` 归入新功能、`fix: ...` 归入修复；破坏性变更使用 `!` 或 `BREAKING CHANGE:` 正文。普通 `chore:`、`docs:`、`test:` 默认不触发版本升级。发布 PR 汇总自上次发布以来的有效变更，审阅版本号和 `CHANGELOG.md` 后再合并；不要手工改动 manifest 或发布 PR 中的版本号。
+
+### 首次启用和令牌
+
+仓库已有 `v0.1.0` tag，三个包当前也都是 `0.1.0`。manifest 以 `0.1.0` 初始化，`release-please-config.json` 的 `bootstrap-sha` 指向该 tag 的提交，只收集该提交之后的变更。首个自动发布完成后，这个 bootstrap 设置不再参与后续发布。若在一个尚无 tag 的仓库复用此配置，应先选择一个已知基线提交作为 `bootstrap-sha`，并在 manifest 写入该基线的版本，避免把全部历史当成首次发布内容。
+
+在仓库 **Settings → Secrets and variables → Actions** 创建 `RELEASE_PLEASE_TOKEN`。使用仅限本仓库的独立 fine-grained PAT，授予 **Contents: Read and write**、**Pull requests: Read and write**、**Issues: Read and write**；令牌持有人须有创建 PR 和 Release 的权限。若仓库策略要求，还要在 **Settings → Actions → General** 允许 Actions 创建 PR。工作流缺少该 Secret 会明确失败，不会回退到默认 `GITHUB_TOKEN`：由默认令牌创建的 PR 和 Release 不会触发后续 Actions，导致发布 PR 无 CI 或 `release: published` 部署不启动。令牌只存储在 GitHub Secret，不进入仓库或日志。
+
+### 日常验证与恢复
+
+1. 将一个 `feat:` 或 `fix:` 变更合入 `main`，查看 **Prepare release** 工作流是否创建或更新发布 PR。确认发布 PR 中 `CHANGELOG.md`、manifest 和 Web、Server、CLI 三个版本一致，并等待 **Checks** 通过。
+2. 合并发布 PR，查看 **Prepare release** 后续运行是否创建一个 `vX.Y.Z` tag 和正式 GitHub Release；核对 Release notes 与 changelog。正式 Release 的 `published` 事件会触发 **Deploy release**，预发布版仍由部署工作流跳过。
+3. 手动重跑 **Prepare release** 或使用 `workflow_dispatch` 检查幂等性：已有版本不会再产生相同 tag/Release；无新可发布提交时也不会创建重复发布 PR。
+4. 若工作流因令牌失效或权限不足失败，修复 Secret/权限后重跑；若发布 PR 合并后 Release 未创建，先核对 tag 与 Release 是否已存在，再手动重跑 **Prepare release**。不要在未核对前手工创建同版本 Release，以免重复部署。若 Release 已创建但部署失败，从 **Deploy release** 的失败步骤和服务器日志排查，并重跑部署工作流；数据库迁移不会随镜像回滚。

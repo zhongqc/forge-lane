@@ -57,6 +57,7 @@
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
     "prisma": "7.10.0",
+    "release-please": "17.11.2",
     "simple-git-hooks": "^2.14.0",
     "supertest": "^7.2.2",
     "tsx": "^4.23.15",
