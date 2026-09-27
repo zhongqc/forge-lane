@@ -181,7 +181,7 @@ test('dragging card body gives stable insertion cue and persists before/after or
   const { project, issue, board } = await fixture(page);
   const other = await (
     await page.request.post(`/api/projects/${project.id}/issues`, {
-      data: { type: 'TASK', title: '第二张排序卡片', statusId: board.columns[0].statuses[1].statusId },
+      data: { type: 'TASK', title: '第二张排序卡片', statusId: board.columns[0].statuses[0].statusId },
     })
   ).json();
   await page.reload();

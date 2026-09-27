@@ -62,7 +62,6 @@ Story / Task / Bug 的执行步骤。
 
 ```text
 Todo
-Ready
 In Progress
 Code Review
 Ready for Test
@@ -83,8 +82,7 @@ Workflow Status 与 Board Column 必须解耦。
 
 ```text
 TODO
-├─ Todo
-└─ Ready
+└─ Todo
 
 DEVELOPING
 ├─ In Progress
@@ -725,7 +723,6 @@ DONE
 
 ```text
 Todo              → TODO
-Ready             → TODO
 
 In Progress       → IN_PROGRESS
 Code Review       → IN_PROGRESS
@@ -800,8 +797,7 @@ BoardColumnStatus
 
 ```text
 TODO
-├─ Todo
-└─ Ready
+└─ Todo
 
 DEVELOPING
 ├─ In Progress
@@ -838,12 +834,12 @@ dnd-kit
 
 ```text
 Column
-├─ StatusSection(Todo)
+├─ StatusSection(In Progress)
 │  ├─ Card
 │  ├─ Card
 │  └─ DropZone
 │
-└─ StatusSection(Ready)
+└─ StatusSection(Code Review)
    ├─ Card
    ├─ Card
    └─ DropZone
@@ -880,15 +876,15 @@ sortOrder
 ### Same Column, Different Status
 
 ```text
-TODO
-├─ Todo
-└─ Ready
+DEVELOPING
+├─ In Progress
+└─ Code Review
 ```
 
 例如：
 
 ```text
-Todo → Ready
+In Progress → Code Review
 ```
 
 修改：
@@ -1492,7 +1488,7 @@ CLOSED
 ```text
 PR Opened
 
-Todo / Ready
+Todo
 →
 Code Review
 ```

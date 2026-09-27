@@ -33,8 +33,41 @@ it('registers a workspace and session, then creates defaults', async () => {
   project = r.body;
   const b = await agent.get(`/api/projects/${project.id}/board`).expect(200);
   statuses = b.body.statuses;
-  expect(statuses).toHaveLength(8);
+  expect(statuses).toHaveLength(7);
   expect(b.body.columns).toHaveLength(4);
+  expect(
+    b.body.columns[0].statuses.map(
+      (mapping: { statusId: string }) => statuses.find((status) => status.id === mapping.statusId)?.name,
+    ),
+  ).toEqual(['Todo']);
+  expect(statuses.map((status) => status.name)).toContain('Ready for Test');
+  expect(statuses.map((status) => status.name)).toContain('Ready for Release');
+});
+it('compacts status order after deleting an unused status', async () => {
+  const created = await agent
+    .post('/api/projects')
+    .send({ name: '状态删除验证', key: `D${Date.now().toString(36).toUpperCase()}` })
+    .expect(201);
+  const projectId = created.body.id;
+  const initial = (await agent.get(`/api/projects/${projectId}/board`).expect(200)).body as BoardData;
+  const temporary = await agent
+    .post(`/api/projects/${projectId}/statuses`)
+    .send({
+      name: 'Temporary',
+      category: 'TODO',
+      columnId: initial.columns[0].id,
+      version: initial.project.version,
+      sortOrder: 1,
+    })
+    .expect(201);
+  await agent.delete(`/api/projects/${projectId}/statuses/${temporary.body.id}`).expect(200);
+  const board = (await agent.get(`/api/projects/${projectId}/board`).expect(200)).body as BoardData;
+  expect(board.statuses.map((status) => status.sortOrder)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  expect(
+    board.columns[0].statuses.map(
+      (mapping) => board.statuses.find((status) => status.id === mapping.statusId)?.name,
+    ),
+  ).toEqual(['Todo']);
 });
 it('creates issue once with idempotency key', async () => {
   const body = {

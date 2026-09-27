@@ -65,7 +65,7 @@ export const commands = {
   'issue list': {
     args: 0,
     options: 'status assigned-to type priority sprint epic search limit offset all',
-    usage: 'forge issue list --project APP [--status Ready] [--assigned-to me] [--all]',
+    usage: 'forge issue list --project APP [--status Todo] [--assigned-to me] [--all]',
     description: '筛选事项，默认返回100条及总数',
   },
   'issue show': {

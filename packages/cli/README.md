@@ -33,7 +33,7 @@ forge whoami --json
 ## 本地 Codex 开发流程
 
 ```sh
-forge issue list --project APP --status Ready --json
+forge issue list --project APP --status Todo --json
 forge issue context APP-123 --json
 forge issue claim APP-123 --executor codex --if-version 3 --json
 # 保存返回的执行 ID；在本地仓库开发并测试
