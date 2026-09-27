@@ -79,7 +79,7 @@ export function SelectField({
     >
       <Popover.Trigger className="select-trigger" aria-label={label} disabled={disabled}>
         {selected?.icon}
-        <span>{selected?.label ?? placeholder}</span>
+        <span className="select-label">{selected?.label ?? placeholder}</span>
         <ChevronDown size={13} />
       </Popover.Trigger>
       <Popover.Portal>
@@ -131,7 +131,7 @@ export function SelectField({
                   }}
                 >
                   {o.icon}
-                  <span>{o.label}</span>
+                  <span className="select-option-label">{o.label}</span>
                   {o.value === value && <Check size={14} />}
                 </button>
               ))}
