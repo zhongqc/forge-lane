@@ -136,70 +136,87 @@ export function CreateIssueDialog({
                   : '用一个清晰的标题，开始推进工作。'}{' '}
             可在下方补充背景、方案和验收标准。
           </p>
-          <div className="create-fields">
-            <SelectField
-              label="状态"
-              value={status}
-              options={data.statuses.map((s) => ({ value: s.id, label: s.name }))}
-              onChange={setStatus}
-            />
-            <SelectField
-              label="负责人"
-              value={assignee}
-              options={[
-                { value: '', label: '未分配' },
-                ...data.members.map((m) => ({ value: m.id, label: m.name })),
-              ]}
-              onChange={setAssignee}
-            />
-            <SelectField
-              label="优先级"
-              value={priority}
-              options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
-              onChange={(value) => setPriority(value as Priority)}
-            />
-            {type !== 'EPIC' && type !== 'SUBTASK' && (
-              <label className="create-estimate">
-                Story Points
-                <input
-                  type="number"
-                  min="0"
-                  max="100000"
-                  step="any"
-                  value={estimate}
-                  onChange={(event) => setEstimate(event.target.value)}
-                  placeholder="未估点"
-                  aria-label="Story Points"
-                />
-              </label>
-            )}
-            {!parentId && type !== 'EPIC' && (
-              <>
+          <section className="create-details" aria-label="基本信息">
+            <div className="create-fields">
+              <div className="create-field">
+                <span className="create-field-label">状态</span>
                 <SelectField
-                  label="Epic"
-                  value={epic}
-                  options={[
-                    { value: '', label: '无 Epic' },
-                    ...data.issues
-                      .filter((i) => i.type === 'EPIC')
-                      .map((i) => ({ value: i.id, label: i.title })),
-                  ]}
-                  onChange={setEpic}
+                  label="状态"
+                  value={status}
+                  options={data.statuses.map((s) => ({ value: s.id, label: s.name }))}
+                  onChange={setStatus}
                 />
+              </div>
+              <div className="create-field">
+                <span className="create-field-label">负责人</span>
                 <SelectField
-                  label="Sprint"
-                  value={sprint}
+                  label="负责人"
+                  value={assignee}
                   options={[
-                    { value: '', label: 'Backlog' },
-                    ...data.sprints
-                      .filter((s) => s.status !== 'COMPLETED')
-                      .map((s) => ({ value: s.id, label: s.name })),
+                    { value: '', label: '未分配' },
+                    ...data.members.map((m) => ({ value: m.id, label: m.name })),
                   ]}
-                  onChange={setSprint}
+                  onChange={setAssignee}
                 />
-              </>
-            )}
-          </div>
+              </div>
+              <div className="create-field">
+                <span className="create-field-label">优先级</span>
+                <SelectField
+                  label="优先级"
+                  value={priority}
+                  options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
+                  onChange={(value) => setPriority(value as Priority)}
+                />
+              </div>
+              {type !== 'EPIC' && type !== 'SUBTASK' && (
+                <label className="create-field create-estimate">
+                  <span className="create-field-label">Story Points</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100000"
+                    step="any"
+                    value={estimate}
+                    onChange={(event) => setEstimate(event.target.value)}
+                    placeholder="未估点"
+                    aria-label="Story Points"
+                  />
+                </label>
+              )}
+              {!parentId && type !== 'EPIC' && (
+                <>
+                  <div className="create-field">
+                    <span className="create-field-label">Epic</span>
+                    <SelectField
+                      label="Epic"
+                      value={epic}
+                      options={[
+                        { value: '', label: '无 Epic' },
+                        ...data.issues
+                          .filter((i) => i.type === 'EPIC')
+                          .map((i) => ({ value: i.id, label: i.title })),
+                      ]}
+                      onChange={setEpic}
+                    />
+                  </div>
+                  <div className="create-field">
+                    <span className="create-field-label">Sprint</span>
+                    <SelectField
+                      label="Sprint"
+                      value={sprint}
+                      options={[
+                        { value: '', label: 'Backlog' },
+                        ...data.sprints
+                          .filter((s) => s.status !== 'COMPLETED')
+                          .map((s) => ({ value: s.id, label: s.name })),
+                      ]}
+                      onChange={setSprint}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
           <section className="create-description" aria-label="事项描述">
             <h3>
               描述 <span className="muted">选填</span>
