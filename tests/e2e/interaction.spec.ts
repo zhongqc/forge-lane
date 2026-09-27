@@ -1,12 +1,12 @@
 import sharp from 'sharp';
 import { test, expect, type Page } from '@playwright/test';
 import { register } from './support/register';
-async function fixture(page: Page) {
+async function fixture(page: Page, memberName = '体验成员') {
   const tag = Date.now().toString(36).toUpperCase();
   await register(page.request, {
     email: `qa-${tag}@forge.test`,
     password: 'Test-experience-2026',
-    name: '体验成员',
+    name: memberName,
   });
   const project = await (
     await page.request.post('/api/projects', { data: { name: '交互验证', key: `Q${tag}` } })
@@ -26,6 +26,38 @@ async function fixture(page: Page) {
   await expect(page.getByRole('button', { name: '验证交互可靠性', exact: true })).toBeVisible();
   return { project, board, issue };
 }
+test('assignee menu avatars stay circular and aligned at desktop and narrow widths', async ({ page }) => {
+  const { issue } = await fixture(page, '名字特别长的产品开发协作负责人');
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByRole('button', { name: issue.title, exact: true }).click();
+    await page
+      .getByRole('dialog', { name: '事项详情' })
+      .getByRole('button', { name: '负责人', exact: true })
+      .click();
+    const options = page.getByRole('listbox', { name: '负责人' }).getByRole('option');
+    await expect(options).toHaveCount(2);
+    const positions = await options.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const avatar = node.querySelector('.avatar')!.getBoundingClientRect();
+        const label = node.querySelector(':scope > span:not(.avatar)')!.getBoundingClientRect();
+        return {
+          width: avatar.width,
+          height: avatar.height,
+          avatarRight: avatar.right,
+          labelLeft: label.left,
+        };
+      }),
+    );
+    for (const position of positions) {
+      expect(position.width).toBeCloseTo(22, 0);
+      expect(position.height).toBeCloseTo(22, 0);
+      expect(position.labelLeft).toBeGreaterThanOrEqual(position.avatarRight);
+    }
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+  }
+});
 test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
   const { issue, board } = await fixture(page);
   let count = 0;

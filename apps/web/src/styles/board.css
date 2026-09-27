@@ -132,7 +132,7 @@
   padding: 8px;
   border-radius: 5px;
 }
-.select-menu [role='option'] > span {
+.select-menu [role='option'] > span:not(.avatar) {
   flex: 1;
   text-align: left;
 }
