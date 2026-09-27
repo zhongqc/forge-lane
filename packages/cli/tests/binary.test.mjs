@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import cliPackage from '../package.json' with { type: 'json' };
 
 void test('compiled CLI runs without Node and includes the task skill', () => {
   const directory = mkdtempSync(join(tmpdir(), 'forge-cli-binary-'));
@@ -29,7 +30,7 @@ void test('compiled CLI runs without Node and includes the task skill', () => {
     assert.equal(compile.status, 0, compile.stderr);
     const version = spawnSync(binary, ['--version'], { encoding: 'utf8' });
     assert.equal(version.status, 0, version.stderr);
-    assert.match(version.stdout, /"version": "0\.1\.0"/);
+    assert.equal(JSON.parse(version.stdout).version, cliPackage.version);
     const skill = spawnSync(binary, ['skill', 'print'], { encoding: 'utf8' });
     assert.equal(skill.status, 0, skill.stderr);
     assert.equal(skill.stdout.trim(), readFileSync('skills/forge-task/SKILL.md', 'utf8').trim());
@@ -49,7 +50,7 @@ void test('release build writes a downloadable binary and matching checksum mani
     );
     assert.equal(build.status, 0, build.stderr);
     const manifest = JSON.parse(readFileSync(join(directory, 'manifest.json'), 'utf8'));
-    assert.equal(manifest.version, '0.1.0');
+    assert.equal(manifest.version, cliPackage.version);
     assert.equal(manifest.files.length, 1);
     const file = manifest.files[0];
     assert.match(file.name, /\.zip$/);

@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { readFile } from 'node:fs/promises';
+import cliPackage from '../package.json' with { type: 'json' };
 import { commands, stringOptions, booleanOptions, help } from './commands.mjs';
 import {
   CliError,
@@ -42,7 +43,7 @@ async function main() {
   let p = parsed.positionals;
   if (f.version) {
     if (p.length) throw new CliError('--version 只用于显示 CLI 版本；写入版本条件使用 --if-version');
-    return { version: '0.1.0' };
+    return { version: cliPackage.version };
   }
   const command = commands[p[0]] ? p[0] : p.slice(0, 2).join(' '),
     definition = commands[command];
