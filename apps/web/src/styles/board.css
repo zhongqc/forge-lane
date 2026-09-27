@@ -282,9 +282,9 @@
   margin-bottom: 7px;
 }
 .issue-key {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.25px;
-  color: #999fab;
+  color: #606a7a;
   white-space: nowrap;
   font-weight: 450;
 }
@@ -328,8 +328,8 @@
   overflow: hidden;
 }
 .card-epic > span {
-  font-size: 8px;
-  color: #a091b3;
+  font-size: 11px;
+  color: #67517c;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -352,8 +352,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
-  color: #9096a4;
+  font-size: 10px;
+  color: #596475;
 }
 .type-icon {
   width: 14px;
@@ -417,12 +417,12 @@
   background: #eaecf0;
 }
 .estimate-badge {
-  font-size: 9px;
+  font-size: 10px;
   min-width: 18px;
   height: 18px;
   border-radius: 4px;
   background: #f5f6f8;
-  color: #a0a7b5;
+  color: #596475;
   display: inline-flex;
   align-items: center;
   justify-content: center;

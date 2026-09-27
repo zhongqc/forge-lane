@@ -2,6 +2,17 @@
 
 让开发者和本地 Codex 通过 API 获取需求、领取任务、更新事项并回写开发结果。代码执行发生在本机；服务器负责权限、数据和执行租约，不需要运行 Codex 容器。
 
+## 独立可执行文件
+
+登录 Forge Lane 后点击顶部的“下载 CLI”，选择 macOS（Apple Silicon / Intel）、Linux（x64 / ARM64）或 Windows（x64）压缩包。网页同时显示 SHA-256 校验值。解压后运行对应的 `forge-*` 文件；macOS/Linux 首次运行前执行 `chmod +x forge-*`。例如：
+
+```sh
+./forge-macos-arm64 --help
+./forge-macos-arm64 login --server https://8.141.3.78/forge --email you@example.com --project PT
+```
+
+Windows 在 PowerShell 中运行 `./forge-windows-x64.exe --help`。二进制文件自带运行时，不需要 Node.js 或 Bun；登录信息仍写入当前用户的私有配置目录。发布流水线用 `node scripts/build-cli.mjs` 构建五个平台的压缩包和 `SHA256SUMS`，并随生产镜像从本站 `/forge/downloads/` 提供下载。源码运行方式见下节。
+
 ## 安装与登录
 
 需要 Node.js 22+。仓库内直接使用 `pnpm forge`；也可以安装本地包获得 `forge` 命令（尚未发布到 npm）：

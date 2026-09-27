@@ -1,6 +1,6 @@
 # 发布部署
 
-发布一个非预发布版的 GitHub Release 后，`.github/workflows/deploy.yml` 先运行仓库的完整检查，再构建与该 Release 提交对应的 Docker 镜像，推送到阿里云个人镜像仓库。工作流通过 SSH 将 `compose.prod.yaml` 和部署脚本传到现有服务器，由服务器拉取该镜像，运行 Compose 并等待服务健康，最后检查公开的 `/forge/api/health` 地址。预发布版不会部署。
+发布一个非预发布版的 GitHub Release 后，`.github/workflows/deploy.yml` 先运行仓库的完整检查，再构建五个平台的 Forge CLI 压缩包和与该 Release 提交对应的 Docker 镜像，推送到阿里云个人镜像仓库。工作流通过 SSH 将 `compose.prod.yaml` 和部署脚本传到现有服务器，由服务器拉取该镜像，运行 Compose 并等待服务健康，最后检查公开的 `/forge/api/health` 地址。CLI 下载文件随生产镜像从本站 `/forge/downloads/` 提供。预发布版不会部署。
 
 ## 首次配置
 
@@ -26,4 +26,4 @@
 
 将工作流、生产 Compose 文件和部署脚本合入默认分支后，创建指向该提交或后续提交的正式 GitHub Release。部署按发布提交的 SHA 给镜像打标签，同一时间只执行一个生产部署。部署过程中不删除 PostgreSQL 卷，也不替换服务器上的 `.env`。
 
-新容器未通过 Compose 健康检查时，脚本尝试恢复上一版应用镜像，并使工作流失败。应用启动时会执行 Prisma 迁移；镜像回滚不会自动回滚数据库结构。公开地址检查失败也会使工作流失败，需要查看服务器上的 Nginx 和应用日志。可在 GitHub Actions 的 **Deploy release** 运行记录中查看具体步骤。
+新容器未通过 Compose 健康检查或公开地址检查时，脚本尝试恢复上一版应用镜像，并使工作流失败。应用启动时会执行 Prisma 迁移；镜像回滚不会自动回滚数据库结构。公开地址检查失败时还需查看服务器上的 Nginx 和应用日志。可在 GitHub Actions 的 **Deploy release** 运行记录中查看具体步骤。

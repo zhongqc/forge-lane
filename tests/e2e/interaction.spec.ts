@@ -1,9 +1,12 @@
 import sharp from 'sharp';
 import { test, expect, type Page } from '@playwright/test';
+import { register } from './support/register';
 async function fixture(page: Page) {
   const tag = Date.now().toString(36).toUpperCase();
-  await page.request.post('/api/auth/register', {
-    data: { email: `qa-${tag}@forge.test`, password: 'Test-experience-2026', name: '体验成员' },
+  await register(page.request, {
+    email: `qa-${tag}@forge.test`,
+    password: 'Test-experience-2026',
+    name: '体验成员',
   });
   const project = await (
     await page.request.post('/api/projects', { data: { name: '交互验证', key: `Q${tag}` } })

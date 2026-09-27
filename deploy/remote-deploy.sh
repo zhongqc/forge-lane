@@ -3,6 +3,7 @@ set -eu
 
 : "${IMAGE_TAG:?Set IMAGE_TAG to the release commit SHA}"
 : "${IMAGE_REPOSITORY:?Set IMAGE_REPOSITORY to the registry repository}"
+: "${PUBLIC_HEALTH_URL:?Set PUBLIC_HEALTH_URL to the public HTTPS health endpoint}"
 case "$IMAGE_TAG" in
   *[!a-zA-Z0-9._-]* | '') echo 'Invalid IMAGE_TAG' >&2; exit 2 ;;
 esac
@@ -19,7 +20,8 @@ if [ -n "$previous_container" ]; then
   previous_image=$(sudo -n docker inspect --format '{{.Image}}' "$previous_container")
 fi
 
-if sudo -n env IMAGE_REPOSITORY="$IMAGE_REPOSITORY" IMAGE_TAG="$IMAGE_TAG" docker compose -f compose.prod.yaml up -d --wait --wait-timeout 180; then
+if sudo -n env IMAGE_REPOSITORY="$IMAGE_REPOSITORY" IMAGE_TAG="$IMAGE_TAG" docker compose -f compose.prod.yaml up -d --wait --wait-timeout 180 &&
+  curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-connrefused --max-time 10 "$PUBLIC_HEALTH_URL"; then
   sudo -n docker tag "$IMAGE_REPOSITORY:$IMAGE_TAG" forge-lane:latest
   echo "Deployed $IMAGE_REPOSITORY:$IMAGE_TAG"
   exit 0

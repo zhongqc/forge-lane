@@ -17,6 +17,13 @@ export function installShell(app: INestApplication) {
   if (!existsSync(resolve(dir, 'index.html'))) return;
   const html = readFileSync(resolve(dir, 'index.html'), 'utf8');
   server.use('/assets', express.static(resolve(dir, 'assets'), { immutable: true, maxAge: '1y' }));
+  server.use(
+    '/downloads',
+    express.static(resolve(dir, 'downloads'), {
+      setHeaders: (res) => res.setHeader('Cache-Control', 'no-store'),
+    }),
+    (_req: express.Request, res: express.Response) => res.sendStatus(404),
+  );
   server.get('/{*path}', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.path.startsWith('/api/')) return next();
     let title = 'Forge Lane · 研发工作空间',
