@@ -119,6 +119,18 @@
 .create-estimate input::placeholder {
   color: #9da4b2;
 }
+.create-label-field {
+  grid-column: 1 / -1;
+}
+.create-label-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.create-label-values .select-trigger {
+  width: auto;
+}
 @media (max-width: 700px) {
   .create-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));

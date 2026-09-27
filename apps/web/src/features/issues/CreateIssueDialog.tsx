@@ -1,6 +1,15 @@
 import { useState, useRef, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Modal, SelectField, TypeIcon, ErrorNotice, typeLabels, priorityLabels } from '../../components/ui';
+import {
+  Avatar,
+  Modal,
+  SelectField,
+  TypeIcon,
+  PriorityIcon,
+  ErrorNotice,
+  typeLabels,
+  priorityLabels,
+} from '../../components/ui';
 import { api } from '../../lib/api';
 import type {
   Actor,
@@ -46,6 +55,7 @@ export function CreateIssueDialog({
   const [epic, setEpic] = useState('');
   const [sprint, setSprint] = useState(initialSprintId ?? '');
   const [priority, setPriority] = useState<Priority>('NONE');
+  const [labelIds, setLabelIds] = useState<string[]>([]);
   const [estimate, setEstimate] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
@@ -73,6 +83,7 @@ export function CreateIssueDialog({
         statusId: status,
         assigneeId: assignee || null,
         ...(reporter ? { reporterId: reporter } : {}),
+        labelIds,
         ...(type !== 'EPIC' && type !== 'SUBTASK' ? { estimate: points } : {}),
         ...(parentId
           ? { parentId }
@@ -152,7 +163,11 @@ export function CreateIssueDialog({
                 <SelectField
                   label="状态"
                   value={status}
-                  options={data.statuses.map((s) => ({ value: s.id, label: s.name }))}
+                  options={data.statuses.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    icon: <span className={`status-dot category-${s.category}`} />,
+                  }))}
                   onChange={setStatus}
                 />
               </div>
@@ -162,8 +177,12 @@ export function CreateIssueDialog({
                   label="负责人"
                   value={assignee}
                   options={[
-                    { value: '', label: '未分配' },
-                    ...data.members.map((m) => ({ value: m.id, label: m.name })),
+                    { value: '', label: '未分配', icon: <Avatar small /> },
+                    ...data.members.map((m) => ({
+                      value: m.id,
+                      label: m.name,
+                      icon: <Avatar actor={m} small />,
+                    })),
                   ]}
                   onChange={setAssignee}
                 />
@@ -182,7 +201,11 @@ export function CreateIssueDialog({
                 <SelectField
                   label="优先级"
                   value={priority}
-                  options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))}
+                  options={Object.entries(priorityLabels).map(([value, label]) => ({
+                    value,
+                    label,
+                    icon: <PriorityIcon priority={value as Priority} />,
+                  }))}
                   onChange={(value) => setPriority(value as Priority)}
                 />
               </div>
@@ -212,7 +235,7 @@ export function CreateIssueDialog({
                         { value: '', label: '无 Epic' },
                         ...data.issues
                           .filter((i) => i.type === 'EPIC')
-                          .map((i) => ({ value: i.id, label: i.title })),
+                          .map((i) => ({ value: i.id, label: i.title, icon: <TypeIcon type="EPIC" /> })),
                       ]}
                       onChange={setEpic}
                     />
@@ -233,6 +256,34 @@ export function CreateIssueDialog({
                   </div>
                 </>
               )}
+              <div className="create-field create-label-field">
+                <span className="create-field-label">标签</span>
+                <div className="create-label-values">
+                  {labelIds.map((id) => {
+                    const label = data.labels.find((item) => item.id === id);
+                    return label ? (
+                      <button
+                        type="button"
+                        className="label-tag"
+                        key={id}
+                        aria-label={`移除标签 ${label.name}`}
+                        onClick={() => setLabelIds((ids) => ids.filter((item) => item !== id))}
+                      >
+                        {label.name} ×
+                      </button>
+                    ) : null;
+                  })}
+                  <SelectField
+                    label="标签"
+                    value=""
+                    options={data.labels
+                      .filter((label) => !labelIds.includes(label.id))
+                      .map((label) => ({ value: label.id, label: label.name }))}
+                    onChange={(id) => setLabelIds((ids) => [...ids, id])}
+                    placeholder="添加标签"
+                  />
+                </div>
+              </div>
             </div>
           </section>
           <section className="create-description" aria-label="事项描述">
