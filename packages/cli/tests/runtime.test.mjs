@@ -92,3 +92,21 @@ await test('help and invalid options are structured; configuration excludes secr
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+await test('skill print emits the forge CLI skill without requiring login', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'forge-cli-skill-'));
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [fileURLToPath(new URL('../src/forge.mjs', import.meta.url)), 'skill', 'print'],
+      { env: { ...process.env, FORGE_CONFIG_DIR: dir }, encoding: 'utf8', timeout: 5000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      result.stdout.trim(),
+      (await readFile(new URL('../skills/forge-cli/SKILL.md', import.meta.url), 'utf8')).trim(),
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

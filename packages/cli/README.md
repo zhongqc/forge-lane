@@ -52,11 +52,11 @@ forge issue transition APP-123 --to "Code Review" --json
 导出工作流模板供 Codex 使用：
 
 ```sh
-mkdir -p ~/.codex/skills/forge-task
-forge skill print > ~/.codex/skills/forge-task/SKILL.md
+mkdir -p ~/.codex/skills/forge-cli
+forge skill print > ~/.codex/skills/forge-cli/SKILL.md
 ```
 
-然后在本地仓库让 Codex 使用 `forge-task` 处理指定事项。CLI 不会自动启动 Codex、推送代码或创建 PR。
+然后在本地仓库让 Codex 使用 `forge-cli` 查询或修改事项、处理指定开发任务。旧的 `forge-task` 模板仍保留在源码包中。CLI 不会自动启动 Codex、推送代码或创建 PR。
 
 ## 命令总览
 
@@ -79,7 +79,7 @@ forge skill print > ~/.codex/skills/forge-task/SKILL.md
 | `issue claim KEY` / `issue release KEY`                            | 领取任务、释放自己的租约           |
 | `run list` / `run show ID`                                         | 执行记录和结果                     |
 | `run renew ID` / `run finish ID`                                   | 续期、回写执行结果                 |
-| `skill print`                                                      | 输出 Codex 工作流模板              |
+| `skill print`                                                      | 输出 forge-cli skill 模板          |
 
 本版聚焦任务开发闭环。工作区、成员权限、工作流与 GitHub App 的管理仍在网页中操作。
 

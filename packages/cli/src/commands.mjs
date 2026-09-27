@@ -176,7 +176,7 @@ export const commands = {
     args: 0,
     options: '',
     usage: 'forge skill print',
-    description: '输出本地Codex任务工作流SKILL.md模板',
+    description: '输出Forge Lane CLI的Codex SKILL.md模板',
   },
 };
 export const stringOptions =

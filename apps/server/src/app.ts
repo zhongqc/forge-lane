@@ -21,6 +21,13 @@ import { WorkspaceService } from './modules/workspace/workspace.service.js';
 import { WorkspaceController } from './modules/workspace/workspace.controller.js';
 import { GitHubModule } from './modules/github/github.module.js';
 import { BoardModule } from './modules/board/board.module.js';
+import serverPackage from '../package.json' with { type: 'json' };
+@Controller('api/version')
+class VersionController {
+  @Get() get() {
+    return { version: serverPackage.version };
+  }
+}
 @Controller('api/health')
 class HealthController {
   constructor(@Inject(Db) private db: Db) {}
@@ -30,7 +37,7 @@ class HealthController {
   }
 }
 @Module({
-  controllers: [WorkspaceController, HealthController],
+  controllers: [WorkspaceController, HealthController, VersionController],
   providers: [WorkspaceService],
   imports: [
     NotificationModule,

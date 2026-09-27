@@ -83,7 +83,7 @@ async function main() {
   }
   if (command === 'skill print') {
     const content = await readFile(
-      globalThis.__forgeEmbeddedSkillPath ?? new URL('../skills/forge-task/SKILL.md', import.meta.url),
+      globalThis.__forgeEmbeddedSkillPath ?? new URL('../skills/forge-cli/SKILL.md', import.meta.url),
       'utf8',
     );
     if (json) return { content };

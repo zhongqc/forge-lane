@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
-void test('compiled CLI runs without Node and includes the task skill', () => {
+void test('compiled CLI runs without Node and includes the CLI skill', () => {
   const directory = mkdtempSync(join(tmpdir(), 'forge-cli-binary-'));
   try {
     const binary = join(directory, 'forge');
@@ -32,7 +32,7 @@ void test('compiled CLI runs without Node and includes the task skill', () => {
     assert.match(version.stdout, /"version": "0\.1\.0"/);
     const skill = spawnSync(binary, ['skill', 'print'], { encoding: 'utf8' });
     assert.equal(skill.status, 0, skill.stderr);
-    assert.equal(skill.stdout.trim(), readFileSync('skills/forge-task/SKILL.md', 'utf8').trim());
+    assert.equal(skill.stdout.trim(), readFileSync('skills/forge-cli/SKILL.md', 'utf8').trim());
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

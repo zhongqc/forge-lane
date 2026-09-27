@@ -25,6 +25,7 @@ import { SettingsPage } from '../features/settings/SettingsPage';
 import { IssueDrawer } from '../features/issues/IssueDrawer';
 import { CreateIssueDialog } from '../features/issues/CreateIssueDialog';
 import type { Actor, BoardData, Project, Issue, IssueType } from '../../../../packages/shared/src/contracts';
+import webPackage from '../../package.json';
 interface Me {
   actor: Actor;
   workspace: { id: string; name: string };
@@ -231,6 +232,7 @@ export function App() {
               ))}
           </nav>
         )}
+        <small className="sidebar-version">v{webPackage.version}</small>
       </aside>
       <div className="main-shell">
         <header className="topbar">
@@ -245,6 +247,7 @@ export function App() {
           <span className="breadcrumb-slash">/</span>
           <span>{nav.find((n) => n.id === view)?.name}</span>
           <div className="toolbar-spacer" />
+          <small className="mobile-version">v{webPackage.version}</small>
           <CliDownload />
           <NotificationInbox />
           <button
