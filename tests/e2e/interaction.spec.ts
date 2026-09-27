@@ -154,6 +154,29 @@ test('dropdown option icons keep their size in create and detail views', async (
     .locator('.status-dot');
   expect((await statusIcon.boundingBox())!.width).toBeLessThanOrEqual(10);
 });
+test('creation fields match editable issue properties', async ({ page }) => {
+  const { project } = await fixture(page);
+  const label = await (
+    await page.request.post(`/api/projects/${project.id}/labels`, {
+      data: { name: '前端验证', color: '#7161a9' },
+    })
+  ).json();
+  await page.reload();
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  const create = page.getByRole('dialog', { name: '新建事项' });
+  await expect(create.getByRole('button', { name: '状态' }).locator('.status-dot')).toBeVisible();
+  await expect(create.getByRole('button', { name: '优先级' }).locator('.priority')).toBeVisible();
+  await create.getByRole('button', { name: '标签' }).click();
+  await page.getByRole('listbox', { name: '标签' }).getByRole('option', { name: '前端验证' }).click();
+  await create.getByPlaceholder('需要完成什么？').fill('创建时设置标签');
+  await create.getByRole('button', { name: '创建事项' }).click();
+  await expect(create).toBeHidden();
+  const board = await (await page.request.get(`/api/projects/${project.id}/board`)).json();
+  const created = board.issues.find((issue: { title: string }) => issue.title === '创建时设置标签');
+  expect(created.labels).toEqual(
+    expect.arrayContaining([expect.objectContaining({ label: expect.objectContaining({ id: label.id }) })]),
+  );
+});
 test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
   const { issue, board } = await fixture(page);
   let count = 0;
