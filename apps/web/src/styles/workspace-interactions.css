@@ -266,26 +266,7 @@ button:disabled {
   margin-bottom: -20px;
 }
 
-/* Pointer dragging starts on the card; this small handle remains keyboard focusable. */
-.card-drag-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #a5aabb;
-  cursor: grab;
-  touch-action: none;
-  opacity: 0;
-}
-.draggable-card:hover .card-drag-handle,
-.card-drag-handle:focus-visible {
-  opacity: 1;
-}
-.card-drag-handle:focus-visible {
+.draggable-card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }

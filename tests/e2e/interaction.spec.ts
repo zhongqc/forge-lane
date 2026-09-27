@@ -58,6 +58,46 @@ test('assignee menu avatars stay circular and aligned at desktop and narrow widt
     await page.getByRole('button', { name: '关闭详情', exact: true }).click();
   }
 });
+test('reporter menus use the same member avatars in create and detail views', async ({ page }) => {
+  const { issue } = await fixture(page);
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  const create = page.getByRole('dialog', { name: '新建事项' });
+  await expect(create.getByRole('button', { name: '报告人' }).locator('.avatar')).toBeVisible();
+  await create.getByRole('button', { name: '报告人' }).click();
+  await expect(page.getByRole('listbox', { name: '报告人' }).locator('.avatar')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await create.getByRole('button', { name: '取消' }).click();
+
+  await page.getByRole('button', { name: issue.title, exact: true }).click();
+  const detail = page.getByRole('dialog', { name: '事项详情' });
+  await expect(detail.getByRole('button', { name: '报告人' }).locator('.avatar')).toBeVisible();
+  await detail.getByRole('button', { name: '报告人' }).click();
+  await expect(page.getByRole('listbox', { name: '报告人' }).locator('.avatar')).toHaveCount(1);
+});
+
+test('Sprint selector calls an unplanned issue no Sprint instead of Backlog', async ({ page }) => {
+  const { issue } = await fixture(page);
+  await page.getByRole('button', { name: '创建事项', exact: true }).click();
+  const create = page.getByRole('dialog', { name: '新建事项' });
+  await expect(create.getByRole('button', { name: 'Sprint' })).toContainText('无 Sprint');
+  await create.getByRole('button', { name: 'Sprint' }).click();
+  await expect(
+    page.getByRole('listbox', { name: 'Sprint' }).getByRole('option', { name: 'Backlog' }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('listbox', { name: 'Sprint' }).getByRole('option', { name: '无 Sprint' }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await create.getByRole('button', { name: '取消' }).click();
+
+  await page.getByRole('button', { name: issue.title, exact: true }).click();
+  const detail = page.getByRole('dialog', { name: '事项详情' });
+  await expect(detail.getByRole('button', { name: 'Sprint' })).toContainText('无 Sprint');
+  await detail.getByRole('button', { name: 'Sprint' }).click();
+  await expect(
+    page.getByRole('listbox', { name: 'Sprint' }).getByRole('option', { name: 'Backlog' }),
+  ).toHaveCount(0);
+});
 test('new workflow status can be placed in the testing board column', async ({ page }) => {
   const { project } = await fixture(page);
   await page.goto(`/projects/${project.key}/settings`);
@@ -213,16 +253,17 @@ test('cross-column drag exposes all status zones and persists the chosen status 
 test('board card starts dragging from its corners and title', async ({ page }) => {
   const { issue } = await fixture(page);
   const card = page.locator('.issue-card').filter({ has: page.getByRole('button', { name: issue.title }) });
-  const box = await card.boundingBox();
-  if (!box) throw new Error('Card bounds missing');
   expect(await card.evaluate((node) => getComputedStyle(node).touchAction)).toBe('none');
   expect(await card.evaluate((node) => getComputedStyle(node).cursor)).toBe('grab');
-  const handle = await card.getByRole('button', { name: `拖动 ${issue.key}` }).boundingBox();
-  if (!handle) throw new Error('Keyboard drag handle missing');
-  expect(handle.width).toBeLessThanOrEqual(24);
+  await expect(card.locator('.card-drag-handle')).toHaveCount(0);
+  await expect(card).toHaveAttribute('role', 'button');
+  await expect(card).toHaveAttribute('aria-label', `拖动 ${issue.key}`);
   await card.getByRole('button', { name: issue.title, exact: true }).click();
   await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
   await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  const box = await card.boundingBox();
+  if (!box) throw new Error('Card bounds missing');
   const points = [
     [box.x + 4, box.y + 4],
     [box.x + box.width - 4, box.y + 4],
@@ -230,15 +271,34 @@ test('board card starts dragging from its corners and title', async ({ page }) =
     [box.x + 4, box.y + box.height - 4],
     [box.x + box.width - 4, box.y + box.height - 4],
   ];
-  for (const [x, y] of points) {
+  for (const [index, [x, y]] of points.entries()) {
     await page.mouse.move(x, y);
     await page.mouse.down();
     await page.mouse.move(x + 15, y + 10, { steps: 5 });
-    await expect(page.locator('.status-drop-zone')).toHaveCount(6);
+    await expect(page.locator('.status-drop-zone'), `drag from card point ${index}`).toHaveCount(6);
     await page.keyboard.press('Escape');
     await page.mouse.up();
     await expect(page.locator('.status-drop-zone')).toHaveCount(0);
   }
+});
+test('clicking card metadata or blank space opens details without starting a drag', async ({ page }) => {
+  const { issue } = await fixture(page);
+  const card = page.locator('.issue-card').filter({ hasText: issue.key });
+  for (const surface of ['.issue-key', '.card-type', '.card-bottom', '.card-epic']) {
+    await card.locator(surface).click();
+    await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+    await page.getByRole('button', { name: '关闭详情', exact: true }).click();
+  }
+  await card.click({ position: { x: 3, y: 3 } });
+  await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+});
+test('Enter opens the focused card while Space starts keyboard dragging', async ({ page }) => {
+  const { issue } = await fixture(page);
+  const card = page.getByRole('button', { name: `拖动 ${issue.key}` });
+  await card.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog', { name: '事项详情' })).toBeVisible();
+  await expect(page.locator('.drag-preview')).toHaveCount(0);
 });
 test('description conflict keeps local draft and roundtrip preserves Markdown constructs', async ({
   page,
@@ -514,7 +574,7 @@ test('cross-column status zones remain visible over populated columns and append
 
 test('every card surface can start dragging without opening details', async ({ page }) => {
   const { issue } = await fixture(page);
-  const card = page.getByRole('article').filter({ hasText: issue.key });
+  const card = page.locator('.issue-card').filter({ hasText: issue.key });
   for (const surface of ['.issue-key', '.card-title', '.card-type', '.card-bottom', '.card-epic', null]) {
     await card.scrollIntoViewIfNeeded();
     const rect = await (surface ? card.locator(surface) : card).boundingBox();
