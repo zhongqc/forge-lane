@@ -32,6 +32,10 @@ export class IssueFieldsDto {
   @IsOptional()
   @IsUUID()
   assigneeId?: string | null;
+  @ApiProperty({ type: String, required: false, format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  reporterId?: string;
   @ApiProperty({ type: String, required: false, nullable: true, format: 'uuid' })
   @IsOptional()
   @IsUUID()
