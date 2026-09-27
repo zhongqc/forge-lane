@@ -319,6 +319,21 @@ a {
 .sidebar nav button:hover {
   background: #eeedf5;
 }
+.app-version {
+  color: #a3a6b2;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar > .app-version {
+  margin-top: auto;
+  padding: 12px 10px 0;
+}
+.topbar > .app-version {
+  display: none;
+}
+.sidebar-collapsed .topbar > .app-version {
+  display: inline;
+}
 .nav-dot {
   width: 5px;
   height: 5px;

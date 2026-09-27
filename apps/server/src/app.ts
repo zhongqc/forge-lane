@@ -21,6 +21,15 @@ import { WorkspaceService } from './modules/workspace/workspace.service.js';
 import { WorkspaceController } from './modules/workspace/workspace.controller.js';
 import { GitHubModule } from './modules/github/github.module.js';
 import { BoardModule } from './modules/board/board.module.js';
+import { APP_VERSION } from '../../../packages/shared/src/version.js';
+
+@Controller('api/version')
+class VersionController {
+  @Get() get() {
+    return { version: APP_VERSION };
+  }
+}
+
 @Controller('api/health')
 class HealthController {
   constructor(@Inject(Db) private db: Db) {}
@@ -30,7 +39,7 @@ class HealthController {
   }
 }
 @Module({
-  controllers: [WorkspaceController, HealthController],
+  controllers: [WorkspaceController, HealthController, VersionController],
   providers: [WorkspaceService],
   imports: [
     NotificationModule,
@@ -75,7 +84,11 @@ export async function createApp() {
   app.useGlobalFilters(new ApiExceptionFilter());
   const document = SwaggerModule.createDocument(
     app,
-    new DocumentBuilder().setTitle('Forge Lane API').setVersion('1.0').addCookieAuth('forge_session').build(),
+    new DocumentBuilder()
+      .setTitle('Forge Lane API')
+      .setVersion(APP_VERSION)
+      .addCookieAuth('forge_session')
+      .build(),
   );
   SwaggerModule.setup('api/docs', app, document);
   return app;

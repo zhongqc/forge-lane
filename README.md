@@ -68,6 +68,8 @@ Board / Backlog 分别使用 `Decimal(65,30)` 顺序；API 只接收相邻事项
 
 API 文档：http://localhost:3001/api/docs，JSON：http://localhost:3001/api/docs-json。服务层统一接收由认证生成的 `ActorContext`；已支持限定项目和读写范围的 CLI 令牌，以及任务领取、续期和执行结果记录。Agent 通过 API 操作，不应直接写数据库或信任请求体的 actorId。当前没有 MCP 服务或服务端自动开发功能。
 
+当前应用版本在 `packages/shared/src/version.ts` 维护；Web 界面和 API 文档共用此值。无需登录即可通过 `GET /api/version` 查询，响应示例：`{"version":"0.1.0"}`。
+
 ## GitHub 开发关联
 
 支持 GitHub App 仓库绑定、Webhook 同步 PR/Commit、事项开发活动与可配置状态自动化。首次导入不改变事项状态，自动化默认关闭；没有 GitHub API 定时轮询。配置和限制见 [GitHub 接入说明](docs/github-integration.md)。

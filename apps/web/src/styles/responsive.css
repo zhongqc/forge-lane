@@ -34,6 +34,9 @@
   }
 }
 @media (max-width: 760px) {
+  .topbar > .app-version {
+    display: inline;
+  }
   .sidebar {
     display: none;
   }

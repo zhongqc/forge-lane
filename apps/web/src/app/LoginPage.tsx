@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, Layers3 } from 'lucide-react';
 import { api } from '../lib/api';
 import { ErrorNotice } from '../components/ui';
+import { APP_VERSION } from '../../../../packages/shared/src/version';
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [register, setRegister] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -98,6 +99,9 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
             </button>
           </p>
         </form>
+        <span className="app-version" aria-label={`版本 ${APP_VERSION}`}>
+          v{APP_VERSION}
+        </span>
       </section>
     </main>
   );

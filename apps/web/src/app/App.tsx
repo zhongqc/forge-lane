@@ -24,6 +24,7 @@ import { SettingsPage } from '../features/settings/SettingsPage';
 import { IssueDrawer } from '../features/issues/IssueDrawer';
 import { CreateIssueDialog } from '../features/issues/CreateIssueDialog';
 import type { Actor, BoardData, Project, Issue, IssueType } from '../../../../packages/shared/src/contracts';
+import { APP_VERSION } from '../../../../packages/shared/src/version';
 interface Me {
   actor: Actor;
   workspace: { id: string; name: string };
@@ -230,6 +231,9 @@ export function App() {
               ))}
           </nav>
         )}
+        <span className="app-version" aria-label={`版本 ${APP_VERSION}`}>
+          v{APP_VERSION}
+        </span>
       </aside>
       <div className="main-shell">
         <header className="topbar">
@@ -244,6 +248,9 @@ export function App() {
           <span className="breadcrumb-slash">/</span>
           <span>{nav.find((n) => n.id === view)?.name}</span>
           <div className="toolbar-spacer" />
+          <span className="app-version" aria-label={`版本 ${APP_VERSION}`}>
+            v{APP_VERSION}
+          </span>
           <NotificationInbox />
           <button
             className="primary global-create"

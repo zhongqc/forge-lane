@@ -65,6 +65,12 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
+  position: relative;
+}
+.auth-form > .app-version {
+  position: absolute;
+  right: 24px;
+  bottom: 18px;
 }
 .auth-form form {
   width: 310px;
