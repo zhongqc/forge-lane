@@ -23,7 +23,7 @@ test('500 issue board renders, remains interactive and persists a move', async (
         type: 'TASK' as const,
         title: `性能事项 ${i + 1}`,
         reporterId: me.actor.id,
-        statusId: board.statuses[i % 8].id,
+        statusId: board.statuses[i % board.statuses.length].id,
         boardOrder: (i + 1) * 1024,
         backlogOrder: (i + 1) * 1024,
       })),
