@@ -58,6 +58,15 @@ export class IssueService {
       });
       if (!member || (member.role !== 'ADMIN' && !pm)) fail(422, '负责人无此项目访问权限');
     }
+    if (input.reporterId) {
+      const member = await tx.workspaceMember.findFirst({
+        where: { actorId: input.reporterId, workspaceId: c.workspaceId, actor: { active: true } },
+      });
+      const pm = await tx.projectMember.findUnique({
+        where: { projectId_actorId: { projectId, actorId: input.reporterId } },
+      });
+      if (!member || (member.role !== 'ADMIN' && !pm)) fail(422, '报告人无此项目访问权限');
+    }
     if (input.labelIds) {
       const n = await tx.label.count({ where: { id: { in: input.labelIds }, projectId } });
       if (n !== new Set(input.labelIds).size) fail(422, '标签不属于此项目');
@@ -91,7 +100,7 @@ export class IssueService {
           projectId,
           number: p.issueCounter,
           statusId: status.id,
-          reporterId: c.actorId,
+          reporterId: input.reporterId ?? c.actorId,
           boardOrder: p.issueCounter * 1000,
           backlogOrder: p.issueCounter * 1000,
         },
@@ -120,7 +129,11 @@ export class IssueService {
         tx,
         c,
         original.projectId,
-        { ...merged, sprintId: fields.sprintId === undefined ? null : fields.sprintId },
+        {
+          ...merged,
+          sprintId: fields.sprintId === undefined ? null : fields.sprintId,
+          reporterId: fields.reporterId,
+        },
         id,
       );
       if (fields.title) fields.title = fields.title.trim();

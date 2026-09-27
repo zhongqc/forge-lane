@@ -2,7 +2,13 @@ import { useState, useRef, lazy, Suspense } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Modal, SelectField, TypeIcon, ErrorNotice, typeLabels, priorityLabels } from '../../components/ui';
 import { api } from '../../lib/api';
-import type { BoardData, Issue, IssueType, Priority } from '../../../../../packages/shared/src/contracts';
+import type {
+  Actor,
+  BoardData,
+  Issue,
+  IssueType,
+  Priority,
+} from '../../../../../packages/shared/src/contracts';
 const MarkdownComposer = lazy(() => import('../editor/MarkdownComposer'));
 export function CreateIssueDialog({
   data,
@@ -22,6 +28,7 @@ export function CreateIssueDialog({
   initialSprintId?: string;
 }) {
   const qc = useQueryClient();
+  const creator = qc.getQueryData<{ actor: Actor }>(['me'])?.actor;
   const titleInput = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<IssueType>(parentId ? 'SUBTASK' : initialType);
   const [title, setTitle] = useState('');
@@ -35,6 +42,7 @@ export function CreateIssueDialog({
   }
   const [status, setStatus] = useState(statusId ?? data.statuses[0]?.id);
   const [assignee, setAssignee] = useState('');
+  const [reporter, setReporter] = useState(creator?.id ?? '');
   const [epic, setEpic] = useState('');
   const [sprint, setSprint] = useState(initialSprintId ?? '');
   const [priority, setPriority] = useState<Priority>('NONE');
@@ -64,6 +72,7 @@ export function CreateIssueDialog({
         priority,
         statusId: status,
         assigneeId: assignee || null,
+        ...(reporter ? { reporterId: reporter } : {}),
         ...(type !== 'EPIC' && type !== 'SUBTASK' ? { estimate: points } : {}),
         ...(parentId
           ? { parentId }
@@ -157,6 +166,15 @@ export function CreateIssueDialog({
                     ...data.members.map((m) => ({ value: m.id, label: m.name })),
                   ]}
                   onChange={setAssignee}
+                />
+              </div>
+              <div className="create-field">
+                <span className="create-field-label">报告人</span>
+                <SelectField
+                  label="报告人"
+                  value={reporter}
+                  options={data.members.map((member) => ({ value: member.id, label: member.name }))}
+                  onChange={setReporter}
                 />
               </div>
               <div className="create-field">

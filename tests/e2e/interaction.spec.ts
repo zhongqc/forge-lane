@@ -78,6 +78,58 @@ test('new workflow status can be placed in the testing board column', async ({ p
     expect.arrayContaining([expect.objectContaining({ statusId: status.id })]),
   );
 });
+test('reporter defaults to creator and can be selected during creation and editing', async ({
+  page,
+  browser,
+}) => {
+  const { project } = await fixture(page);
+  const creator = (await (await page.request.get('/api/me')).json()).actor;
+  const defaultIssue = await page.request.post(`/api/projects/${project.id}/issues`, {
+    data: { type: 'TASK', title: '默认报告人' },
+  });
+  expect(defaultIssue.status()).toBe(201);
+  expect((await defaultIssue.json()).reporter.id).toBe(creator.id);
+  const invalidReporter = await page.request.post(`/api/projects/${project.id}/issues`, {
+    data: { type: 'TASK', title: '无效报告人', reporterId: '00000000-0000-4000-8000-000000000000' },
+  });
+  expect(invalidReporter.status()).toBe(422);
+  const email = `reporter-${Date.now()}@forge.test`;
+  const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
+  try {
+    await register(context.request, { email, password: 'Reporter-test-2026', name: '报告成员' });
+    const member = await (
+      await page.request.post('/api/workspace/members', { data: { email, role: 'MEMBER' } })
+    ).json();
+    await page.request.post(`/api/projects/${project.id}/members`, {
+      data: { actorId: member.actorId, role: 'MEMBER' },
+    });
+    await page.reload();
+    await page.getByRole('button', { name: '创建事项', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: '新建事项' });
+    await expect(dialog.getByRole('button', { name: '报告人' })).toContainText(creator.name);
+    await dialog.getByRole('button', { name: '报告人' }).click();
+    await page.getByRole('option', { name: '报告成员' }).click();
+    await dialog.getByPlaceholder('需要完成什么？').fill('报告人可选');
+    const created = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/projects/${project.id}/issues`) && response.request().method() === 'POST',
+    );
+    await dialog.getByRole('button', { name: '创建事项' }).click();
+    expect((await created).status()).toBe(201);
+
+    const board = await (await page.request.get(`/api/projects/${project.id}/board`)).json();
+    const issue = board.issues.find((item: { title: string }) => item.title === '报告人可选');
+    expect(issue.reporter.id).toBe(member.actorId);
+    await page.goto(`/issues/${issue.key}`);
+    const details = page.getByRole('dialog', { name: '事项详情' });
+    await details.getByRole('button', { name: '报告人', exact: true }).click();
+    await page.getByRole('option', { name: creator.name }).click();
+    await expect(details.getByRole('button', { name: '报告人', exact: true })).toContainText(creator.name);
+    expect((await (await page.request.get(`/api/issues/${issue.id}`)).json()).reporter.id).toBe(creator.id);
+  } finally {
+    await context.close();
+  }
+});
 test('cross-column drag exposes all status zones and persists the chosen status once', async ({ page }) => {
   const { issue, board } = await fixture(page);
   let count = 0;

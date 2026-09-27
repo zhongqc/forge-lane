@@ -276,6 +276,21 @@ export function IssueDrawer({
                   />
                 </div>
                 <div>
+                  <span className="property-label">报告人</span>
+                  <SelectField
+                    label="报告人"
+                    value={issue.reporter.id}
+                    options={[
+                      ...(!board.members.some((member) => member.id === issue.reporter.id)
+                        ? [{ value: issue.reporter.id, label: issue.reporter.name }]
+                        : []),
+                      ...board.members.map((member) => ({ value: member.id, label: member.name })),
+                    ]}
+                    onChange={(value) => void update('reporterId', value)}
+                    disabled={!canWrite || !!busy}
+                  />
+                </div>
+                <div>
                   <span className="property-label">优先级</span>
                   <SelectField
                     label="优先级"
