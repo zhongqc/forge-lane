@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
+import { GripVertical } from 'lucide-react';
 import { Avatar, TypeIcon, PriorityIcon } from '../../components/ui';
 import type { Issue } from '../../../../../packages/shared/src/contracts';
 export function CardContent({
@@ -53,16 +54,17 @@ export function Card({
   columnId: string;
   receiving?: boolean;
 }) {
-  const { setNodeRef, isDragging, listeners, attributes } = useSortable({
+  const { setNodeRef, setActivatorNodeRef, isDragging, listeners, attributes } = useSortable({
     disabled: { draggable: readOnly, droppable: readOnly || receiving },
     id: issue.id,
     data: { kind: 'card', columnId, statusId: issue.statusId },
   });
+  const { onPointerDown, ...handleListeners } = listeners ?? {};
   return (
     <article
       ref={setNodeRef}
       style={{ opacity: isDragging ? 0.25 : 1 }}
-      onPointerDownCapture={(e) => listeners?.onPointerDown?.(e)}
+      onPointerDown={(event) => onPointerDown?.(event)}
       className={`issue-card ${readOnly ? '' : 'draggable-card'}`}
     >
       <CardContent
@@ -70,12 +72,15 @@ export function Card({
         onOpen={onOpen}
         handle={
           <button
-            className="card-drag-surface"
+            ref={setActivatorNodeRef}
+            className="card-drag-handle"
             disabled={readOnly}
             {...attributes}
-            {...listeners}
+            {...handleListeners}
             aria-label={`拖动 ${issue.key}`}
-          />
+          >
+            <GripVertical size={14} />
+          </button>
         }
       />
     </article>

@@ -266,33 +266,28 @@ button:disabled {
   margin-bottom: -20px;
 }
 
-/* The drag activator covers the complete card; content remains clickable above it. */
-.card-drag-surface {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: transparent;
+/* Pointer dragging starts on the card; this small handle remains keyboard focusable. */
+.card-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: 0;
+  background: transparent;
+  color: #a5aabb;
   cursor: grab;
   touch-action: none;
+  opacity: 0;
 }
-.card-drag-surface:focus-visible {
+.draggable-card:hover .card-drag-handle,
+.card-drag-handle:focus-visible {
+  opacity: 1;
+}
+.card-drag-handle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-.draggable-card > .card-top,
-.draggable-card > .card-title,
-.draggable-card > .card-epic,
-.draggable-card > .card-bottom {
-  position: relative;
-}
-.draggable-card > .card-top {
-  position: static;
-}
-.draggable-card .card-title {
-  z-index: 1;
 }
 .draggable-card :is(.card-epic, .card-bottom, .issue-key, .card-top-right) {
   cursor: grab;
