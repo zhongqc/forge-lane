@@ -295,17 +295,6 @@
   gap: 5px;
   align-items: center;
 }
-.drag-handle {
-  padding: 0;
-  color: #c6c9d2;
-  cursor: grab;
-  touch-action: none;
-  opacity: 0;
-}
-.issue-card:hover .drag-handle,
-.drag-handle:focus-visible {
-  opacity: 1;
-}
 .card-title {
   display: block;
   text-align: left;

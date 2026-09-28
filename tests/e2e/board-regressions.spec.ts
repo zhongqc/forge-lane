@@ -37,7 +37,7 @@ test('new task can set priority and zero story points before creation', async ({
   await page.locator('.topbar').getByRole('button', { name: '创建事项', exact: true }).click();
   await page.getByPlaceholder('需要完成什么？').fill('创建时规划');
   await page.getByRole('button', { name: '优先级', exact: true }).click();
-  await page.getByRole('option', { name: '高', exact: true }).click();
+  await page.getByRole('listbox', { name: '优先级' }).getByRole('option', { name: /高/ }).click();
   await page.getByRole('spinbutton', { name: 'Story Points' }).fill('0');
   await page.getByRole('button', { name: '创建事项', exact: true }).last().click();
   await expect(page.getByRole('button', { name: '创建时规划' })).toBeVisible();

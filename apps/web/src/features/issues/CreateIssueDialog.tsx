@@ -192,7 +192,11 @@ export function CreateIssueDialog({
                 <SelectField
                   label="报告人"
                   value={reporter}
-                  options={data.members.map((member) => ({ value: member.id, label: member.name }))}
+                  options={data.members.map((member) => ({
+                    value: member.id,
+                    label: member.name,
+                    icon: <Avatar actor={member} small />,
+                  }))}
                   onChange={setReporter}
                 />
               </div>
@@ -246,7 +250,7 @@ export function CreateIssueDialog({
                       label="Sprint"
                       value={sprint}
                       options={[
-                        { value: '', label: 'Backlog' },
+                        { value: '', label: '无 Sprint' },
                         ...data.sprints
                           .filter((s) => s.status !== 'COMPLETED')
                           .map((s) => ({ value: s.id, label: s.name })),

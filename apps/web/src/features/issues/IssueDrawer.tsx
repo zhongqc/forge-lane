@@ -282,9 +282,19 @@ export function IssueDrawer({
                     value={issue.reporter.id}
                     options={[
                       ...(!board.members.some((member) => member.id === issue.reporter.id)
-                        ? [{ value: issue.reporter.id, label: issue.reporter.name }]
+                        ? [
+                            {
+                              value: issue.reporter.id,
+                              label: issue.reporter.name,
+                              icon: <Avatar actor={issue.reporter} small />,
+                            },
+                          ]
                         : []),
-                      ...board.members.map((member) => ({ value: member.id, label: member.name })),
+                      ...board.members.map((member) => ({
+                        value: member.id,
+                        label: member.name,
+                        icon: <Avatar actor={member} small />,
+                      })),
                     ]}
                     onChange={(value) => void update('reporterId', value)}
                     disabled={!canWrite || !!busy}
@@ -325,7 +335,7 @@ export function IssueDrawer({
                     <span className="property-label">Sprint</span>
                     {issue.type === 'SUBTASK' ? (
                       <span className="inherited">
-                        {board.sprints.find((s) => s.id === issue.effectiveSprintId)?.name ?? 'Backlog'} ·
+                        {board.sprints.find((s) => s.id === issue.effectiveSprintId)?.name ?? '无 Sprint'} ·
                         继承
                       </span>
                     ) : (
@@ -333,7 +343,7 @@ export function IssueDrawer({
                         label="Sprint"
                         value={issue.sprintId ?? ''}
                         options={[
-                          { value: '', label: 'Backlog' },
+                          { value: '', label: '无 Sprint' },
                           ...board.sprints
                             .filter((s) => s.status !== 'COMPLETED' || s.id === issue.sprintId)
                             .map((s) => ({ value: s.id, label: s.name })),
