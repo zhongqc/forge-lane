@@ -1,0 +1,112 @@
+name: Prepare and publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Target version (major.minor.patch, without v)'
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - apps/web/package.json
+      - apps/server/package.json
+      - packages/cli/package.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-lane-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: test -n "$RELEASE_TOKEN" || { echo 'Missing RELEASE_TOKEN secret' >&2; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Bump product version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          node scripts/release-version.mjs bump "$VERSION"
+          tag="v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_ENV"
+          echo "branch=codex/release-$tag" >> "$GITHUB_ENV"
+      - name: Create version branch and release PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "$branch already exists" >&2
+            exit 1
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$tag" -f target_commitish=main --jq .body > "$RUNNER_TEMP/release-notes.md"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add apps/web/package.json apps/server/package.json packages/cli/package.json
+          git commit -m "chore: prepare $tag release"
+          git push origin "$branch"
+          {
+            printf '## Release %s\n\n' "$tag"
+            printf 'Merge this PR to run Checks, publish the Release, and deploy it.\n\n'
+            printf '### Release notes preview\n\n'
+            cat "$RUNNER_TEMP/release-notes.md"
+            printf '\n\nThe published Release regenerates these notes after merge.\n'
+          } > "$RUNNER_TEMP/release-pr.md"
+          gh pr create --base main --head "$branch" --title "chore: prepare $tag release" --body-file "$RUNNER_TEMP/release-pr.md"
+
+  check:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/check.yml
+
+  publish:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: test -n "$RELEASE_TOKEN" || { echo 'Missing RELEASE_TOKEN secret' >&2; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Publish release with generated notes
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node scripts/release-version.mjs current)"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag is already published; nothing to do"
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag exists without a Release; refusing to publish" >&2
+            exit 1
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes

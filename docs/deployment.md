@@ -24,18 +24,16 @@
 
 ## 发布与恢复
 
-将需要发布的代码和版本号合入默认分支，确认 Checks 通过后，手动创建指向该提交的正式 GitHub Release。部署按发布提交的 SHA 给镜像打标签，同一时间只执行一个生产部署。部署过程中不删除 PostgreSQL 卷，也不替换服务器上的 `.env`。
+将需要发布的代码合入默认分支，再按下方流程准备版本 PR；合并后由工作流在 Checks 通过时创建指向合并提交的正式 GitHub Release。部署按发布提交的 SHA 给镜像打标签，同一时间只执行一个生产部署。部署过程中不删除 PostgreSQL 卷，也不替换服务器上的 `.env`。
 
 新容器未通过 Compose 健康检查或公开地址检查时，脚本尝试恢复上一版应用镜像，并使工作流失败。应用启动时会执行 Prisma 迁移；镜像回滚不会自动回滚数据库结构。公开地址检查失败时还需查看服务器上的 Nginx 和应用日志。可在 GitHub Actions 的 **Deploy release** 运行记录中查看具体步骤。
 
-## 手动准备版本
+## 准备版本与自动发布
 
-Forge Lane 使用一个产品版本。发布前同步更新 `apps/web/package.json`、`apps/server/package.json` 和 `packages/cli/package.json` 的 `version`，并通过 PR 合入 `main`。Web 界面与 `/api/version` 分别从对应包读取版本；CLI 的 `--version` 和下载清单从 CLI 包读取版本。`pnpm-lock.yaml` 不记录工作区包自身的版本，无需随版本号修改。
+在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 配置 `RELEASE_TOKEN` Repository Secret。它是可访问本仓库的细粒度 Personal Access Token，至少需要 Contents、Pull requests 的读写权限。发布工作流用它创建 PR 和正式 Release；GitHub Actions 默认的 `GITHUB_TOKEN` 创建的 Release 不会触发后续的 **Deploy release** 工作流。
 
-确认 `main` 的 Checks 通过，且目标版本的 tag 和 Release 尚不存在后，创建正式 GitHub Release，例如：
+在 **Actions → Prepare and publish release → Run workflow** 中输入目标版本（例如 `0.1.4`，不要加 `v`）。工作流要求版本号高于当前版本，且三个产品包的版本一致；它同步更新 `apps/web/package.json`、`apps/server/package.json` 和 `packages/cli/package.json`，创建 PR，并在 PR 正文附上自动生成的 Release Notes 预览。`pnpm-lock.yaml` 不记录工作区包自身的版本，无需随版本号修改。
 
-```sh
-gh release create v0.1.1 --target main --title v0.1.1 --generate-notes
-```
+审核并合并版本 PR 后，`main` 的版本文件变动触发同一工作流。它先运行 Checks，随后为合并提交创建正式 GitHub Release，并重新生成 Release Notes。Release 的 `published` 事件继续触发 **Deploy release**。同一版本已有 Release 时跳过；若 tag 已存在但 Release 缺失，工作流会失败，需人工检查。工作流本身合入时不会发布新版本。
 
-正式 Release 的 `published` 事件触发 **Deploy release**。部署失败时查看该工作流的失败步骤和服务器日志；部署脚本会尝试恢复前一版应用镜像，但数据库迁移不会随镜像回滚。不要为同一版本重复创建 Release。
+部署失败时查看该工作流的失败步骤和服务器日志；部署脚本会尝试恢复前一版应用镜像，但数据库迁移不会随镜像回滚。
