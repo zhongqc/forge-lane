@@ -1,6 +1,6 @@
 {
   "name": "@forge-lane/cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Forge Lane task CLI for developers and coding agents",
   "bin": {
     "forge": "src/forge.mjs"
