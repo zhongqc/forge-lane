@@ -12,3 +12,8 @@ test-results/
 packages/db/generated/
 
 .pnpm-store/
+
+.DS_Store
+out/
+release/
+packages/local-db/generated/

@@ -2,9 +2,9 @@
 
 | 属性             | 内容                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| 规格版本         | 0.3.2；独立于应用发布版本                                                                              |
+| 规格版本         | 0.3.3；独立于应用发布版本                                                                              |
 | 日期             | 2026-11-25                                                                                             |
-| 状态             | Proposed；可评审的目标规格，尚未实施                                                                   |
+| 状态             | Approved；M0 桌面基础已开始实施，完整验收尚未完成                                                      |
 | 产品形态         | Local-first 桌面工程任务工作台                                                                         |
 | 目标用户         | 个人开发者、独立使用工具的技术负责人                                                                   |
 | 首版交付平台     | macOS Apple Silicon；其他平台后续验证                                                                  |
@@ -29,7 +29,7 @@ Forge 以项目和任务为中心，帮助用户把需求转为可追踪的开�
 - 普通用户的执行授权、权限放行和 Merge 仅通过桌面端操作；首版 CLI 作为规划与查询入口。
 - 首版手动更新应用，不提供常驻 Daemon、后台自动更新或跨设备同步。
 
-本文件定义产品行为、技术边界和验收条件，不是逐文件实施计划。技术选择以现有代码、部署成本和官方接口为依据；用户对 Prisma 和 Codex 原始会话的询问不被解释为指定 ORM 或要求客户端同步。本文变更不安装依赖、搭建工程或修改业务代码。
+本文件定义产品行为、技术边界和验收条件，不是逐文件实施计划。技术选择以现有代码、部署成本和官方接口为依据；用户对 Prisma 和 Codex 原始会话的询问不被解释为指定 ORM 或要求客户端同步。实施进度与实测版本见 `docs/adr/0001-desktop-runtime.md`；本文列出的完整目标不等于当前已交付能力。
 
 ## 2. 目标、非目标与成功标准
 
@@ -89,11 +89,12 @@ Prisma 以仓库现有 `7.10.0` 为验证基线，`prisma`、`@prisma/client`、
 
 ### 3.2 备选方案及结论
 
-| 方案                                 | 收益                                        | 代价                                                           | 结论   |
-| ------------------------------------ | ------------------------------------------- | -------------------------------------------------------------- | ------ |
-| Electron + React + 新本地 Core       | UI 和 TypeScript 可复用，进程与原生能力直接 | 安装包体积、Electron 安全与原生模块 ABI 需要管理               | 采用   |
-| Tauri + React + Rust Core            | 可以减少桌面运行时负担                      | 增加 Rust、跨语言契约与 Node/Agent 进程适配；降低现有代码复用  | 不采用 |
-| 保留 NestJS / PostgreSQL，再加桌面壳 | 暂时复用更多后端代码                        | 本地仍依赖数据库服务、账号体系和服务端运维，不符合目标产品边界 | 不采用 |
+| 方案                                 | 收益                                        | 代价                                                           | 结论                 |
+| ------------------------------------ | ------------------------------------------- | -------------------------------------------------------------- | -------------------- |
+| Electron + React + 新本地 Core       | UI 和 TypeScript 可复用，进程与原生能力直接 | 安装包体积、Electron 安全与原生模块 ABI 需要管理               | 采用                 |
+| Tauri + React + Node sidecar         | 保留 React/TypeScript，使用系统 WebView     | 额外承担 Node sidecar 通信、生命周期及依赖分发                 | 合理备选，首版不采用 |
+| Tauri + React + Rust Core            | 可以减少桌面运行时负担                      | 增加 Rust 与跨语言契约；核心及存储工具链需要另行建立           | 不采用               |
+| 保留 NestJS / PostgreSQL，再加桌面壳 | 暂时复用更多后端代码                        | 本地仍依赖数据库服务、账号体系和服务端运维，不符合目标产品边界 | 不采用               |
 
 数据库单独比较，不把“换为 SQLite”和“换 ORM”合并为一个决定：
 
@@ -111,9 +112,9 @@ Prisma 7 的现有生成客户端使用查询编译器/WASM 路线；“必须�
 
 如果 M0 的实际安装包不能离线完成迁移、无法可靠部署引擎或出现不可接受的维护成本，必须以失败证据更新 ADR 和规格后再考虑 Drizzle；不在实现中静默引入第二个 ORM 或自定义 `_prisma_migrations` 写法。
 
-暂不选择 `node:sqlite`，避免把首版同时绑定到特定 Electron 内嵌 Node 能力与对应 ORM 驱动成熟度。better-sqlite3 的 Electron ABI 重建是已接受的工程成本，必须在 M0 的实际安装包中验证。
+暂不选择 `node:sqlite`，避免把首版同时绑定到特定 Electron 内嵌 Node 能力与对应 ORM 驱动成熟度。better-sqlite3 的 Electron/Node-API 兼容性与实际加载路径必须在 M0 安装包中验证。当前驱动 override 与验证依据记录在 ADR 0001，不能仅凭依赖安装成功视为兼容。
 
-### 3.3 本轮证据及尚未验证的部分
+### 3.3 规格设计阶段证据（实施前）
 
 - 仓库检查：`prisma` / `@prisma/client` 为 7.10.0，`packages/db/src/client.ts` 已使用 `PrismaPg`；22 个服务端文件涉及 Prisma 类型或数据库客户端、旧 schema 有 30 个模型。此统计仅说明旧版规模；这 30 个模型没有保留义务，也不作为 ORM 必须沿用的约束。
 - 在临时目录使用已安装的 Prisma 7.10 CLI 验证了 SQLite 新库 `migrate deploy`、重复执行不重复迁移，实际迁移记录为一条。最初两次探针出现无详细原因的 schema-engine 错误，之后普通环境的新库与重复运行均成功，根因尚未确定；不能将这次小范围探针视为冷启动可靠性或桌面兼容性通过。
@@ -456,8 +457,8 @@ PrismaClient 只由 local-db 创建，通过 `@prisma/adapter-better-sqlite3` �
 以下迁移专指新版 SQLite 的首次建库和新版之间的 schema 升级，不涉及旧 PostgreSQL 数据。桌面升级流程固定为：
 
 1. 开发时用 Prisma Migrate 7 生成 SQLite SQL migration，审查并提交；新增 partial unique index 等数据库约束时保留明确 SQL 和测试。schema/client 类型无法表达的约束也必须真实存在于数据库。
-2. 构建时生成 SQLite Prisma Client，打包所需 JS/WASM 资源、迁移目录、独立 Prisma config、Prisma CLI 及目标平台 schema-engine 可执行文件。原生 better-sqlite3 按 Electron ABI 重建；可执行文件放在正确的 unpacked resources 位置并参与签名。
-3. 应用取得单实例锁后，先检查 schema 兼容性与迁移记录、备份现有数据库，再由独立 migration utility process 调用随包分发的官方 Prisma CLI `migrate deploy`。使用 Electron 自带 Node 执行包中 CLI 的 bin 入口，不调用系统 Node、npx/pnpm、远端下载或私有 `@prisma/migrate` API。M0 必须证明此宿主路径可行；不能因开发机已有 Node 而遗漏干净机器验收。
+2. 构建时生成 SQLite Prisma Client，打包所需 JS/WASM 资源、迁移目录、独立 Prisma config、Prisma CLI 及目标平台 schema-engine 可执行文件。原生 better-sqlite3 按实际 Electron/Node-API 兼容组合验证，必要时重建；可执行文件放在正确的 unpacked resources 位置并参与签名。
+3. 应用取得单实例锁后，先检查 schema 兼容性与迁移记录、备份现有数据库，再由独立 migration utility process 调用随包分发的官方 Prisma CLI `migrate deploy`。由 migration utility process 调用 Electron 自带 Node 模式执行包中官方 CLI 的 bin 入口，以 CLI 进程退出码判断完成，不调用系统 Node、npx/pnpm、远端下载或私有 `@prisma/migrate` API。M0 必须证明此宿主路径可行；不能因开发机已有 Node 而遗漏干净机器验收。
 4. CLI 退出成功后再建立业务 Prisma 连接并开放写入；迁移进程与 Core 业务写入不能并行。首次建库、已有库升级、重复执行、迁移中断及旧应用打开新 schema 都有独立验收。
 5. 发现失败/未完成/不匹配的迁移时进入维护模式并保留诊断与原库，不自动 reset、resolve 或执行 `db push`。不自制迁移文件执行器，不直接写 `_prisma_migrations` 冒充完成。只读查看表和从一致备份恢复不等于伪造迁移状态。
 

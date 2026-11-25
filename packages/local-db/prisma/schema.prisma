@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client"
+  output = "../generated"
+  moduleFormat = "esm"
+}
+datasource db {
+  provider = "sqlite"
+}
+model Project {
+  id String @id
+  name String
+  repositoryPath String
+  gitCommonDir String @unique
+  version Int @default(1)
+  createdAt DateTime @default(now())
+}
+model Settings {
+  id String @id
+  version Int @default(1)
+  values Json
+}
+model Mutation {
+  requestId String @id
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+}
+model ActivityEvent {
+  seq Int @id @default(autoincrement())
+  eventId String @unique
+  entityId String
+  type String
+  requestId String @unique
+  timestamp DateTime @default(now())
+  payload Json
+}

@@ -1,22 +1,33 @@
-name: Checks
+name: Desktop checks
 on:
   push:
     branches: [main]
   pull_request:
-  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  desktop:
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm setup:desktop
       - run: pnpm db:generate
       - run: pnpm lint && pnpm format:check && pnpm typecheck && pnpm test
+      - run: pnpm package:dir
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: pnpm test:desktop
+        env:
+          FORGE_PACKAGED_EXE: release/mac-arm64/Forge Desktop.app/Contents/MacOS/Forge Desktop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-test-results
+          path: test-results/
