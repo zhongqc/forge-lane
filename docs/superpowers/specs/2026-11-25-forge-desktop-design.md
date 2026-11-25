@@ -2,7 +2,7 @@
 
 | 属性             | 内容                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| 规格版本         | 0.3.1；独立于应用发布版本                                                                              |
+| 规格版本         | 0.3.2；独立于应用发布版本                                                                              |
 | 日期             | 2026-11-25                                                                                             |
 | 状态             | Proposed；可评审的目标规格，尚未实施                                                                   |
 | 产品形态         | Local-first 桌面工程任务工作台                                                                         |
@@ -16,14 +16,14 @@
 
 Forge 以项目和任务为中心，帮助用户把需求转为可追踪的开发任务，并在明确授权后调用现有 Coding Agent 完成实现、测试和交付。看板是主要界面，聊天用于规划、澄清和介入执行。
 
-已经由用户确认：保留原仓库，旧 Web 服务端留在归档分支，新版独立演进；首版必须有必要的基础校验和设置，组件库按适配程度选用，不合适时自行实现。此前提供的产品文档是需求输入，本规格结合现有实现补齐工程约束；冲突处以本规格批准后的规则为准。
+已经由用户确认：保留原仓库，旧 Web 服务端留在归档分支，新版独立演进；首版必须有必要的基础校验和设置，组件库按适配程度选用，不合适时自行实现；旧后端中过重的模型可以直接舍弃，新版不需要承担旧数据迁移或兼容。此前提供的产品文档是需求输入，本规格结合现有实现补齐工程约束；冲突处以本规格批准后的规则为准。
 
 本次选定的技术方案：**TypeScript + Electron + React + electron-vite + SQLite + Prisma ORM 7 + better-sqlite3**。本地 Core 运行在 Electron utility process，使用 Git CLI、GitHub CLI 和 Codex App Server 执行外部操作。
 
 以下为本次设计默认值，不表述为用户此前已确认的要求：
 
 - 首版仅交付 macOS Apple Silicon，避免同时承担多平台安装、沙箱和进程恢复成本。
-- 新版新建本地数据库，不自动导入旧 PostgreSQL 数据；Git 分支与标签只保存旧代码，不包含旧数据库。旧 PostgreSQL 实例/备份由原部署保留，新版不得删除或迁移它们。
+- 新版从空的 SQLite 数据库和独立 schema 开始；不设计旧 PostgreSQL 数据转换、导入、ID 映射、双写或旧 API 兼容，也不把旧数据导入列入后续计划。Git 分支与标签只保存旧代码；本规格不授权删除或操作旧部署中的实际数据库。
 - 执行通道一次一个 Developer 或 Reviewer Run；规划通道另保留一个 Planner Run，最多同时两个主动 Run。允许其他任务等待 CI、人工操作或外部合并。
 - 自动返工默认关闭；用户开工时可启用，最多三轮，不自动扩充预算。
 - 普通用户的执行授权、权限放行和 Merge 仅通过桌面端操作；首版 CLI 作为规划与查询入口。
@@ -44,7 +44,7 @@ Forge 以项目和任务为中心，帮助用户把需求转为可追踪的开�
 
 ### 2.2 非目标
 
-首版不包含多人组织与登录系统、Sprint、成员估点、邮件通知、远程 Web 服务、旧 API 兼容、自动旧数据导入、完整 IDE、终端模拟器、通用 Pipeline 编辑器、多 Harness、Agent Swarm、GitLab、GitHub Enterprise、Fork PR、堆叠 PR、远程执行、插件市场和自动部署。
+首版不包含多人组织与登录系统、Sprint、成员估点、邮件通知、远程 Web 服务、旧 API 兼容、旧数据迁移与导入、完整 IDE、终端模拟器、通用 Pipeline 编辑器、多 Harness、Agent Swarm、GitLab、GitHub Enterprise、Fork PR、堆叠 PR、远程执行、插件市场和自动部署。
 
 不重新实现 Agent Runtime，不根据 Agent 的“已完成”文字直接放行交付，不把 Worktree 当成安全沙箱。不维持旧 Web 产品与桌面产品的双向同步。
 
@@ -60,26 +60,26 @@ Forge 以项目和任务为中心，帮助用户把需求转为可追踪的开�
 
 ### 3.1 选定技术栈
 
-| 层         | 选择                                                                | 理由与边界                                                                                           |
-| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 语言       | TypeScript，strict 模式                                             | 复用现有前后端知识与类型体系                                                                         |
-| 桌面       | Electron                                                            | 复用 React UI；直接使用 Node 进程、Git、Codex 与本地文件能力                                         |
-| 构建       | electron-vite                                                       | 统一 main / preload / renderer 构建；Core 作为独立 Node 目标入口打包                                 |
-| 安装包     | electron-builder 稳定版                                             | 首版输出 arm64 DMG；签名、公证与原生模块打包纳入发布验证                                             |
-| UI         | React 19、React Router、TanStack Query                              | 延续现有栈；查询经 bridge 调用 Core，不保留 Cookie/HTTP 登录假设                                     |
-| 交互与样式 | CSS / PostCSS；优先复用现有组件，按需使用 Radix UI、dnd-kit、Lucide | 组件库不是产品约束；局部不合适时封装或自研，基础交互和可访问性保持一致                               |
-| Markdown   | MDXEditor + react-markdown / remark-gfm                             | Markdown 为唯一存储源；禁用不可信 HTML 与可执行 MDX                                                  |
-| Core       | Node.js API、普通 TypeScript 模块、显式依赖注入                     | 不新建 NestJS HTTP 服务；Core 不导入 Electron，宿主适配层负责启动与通信                              |
-| 本地存储   | SQLite + @prisma/adapter-better-sqlite3                             | Prisma 负责业务访问；better-sqlite3 负责驱动和维护；单 Core 写入                                     |
-| ORM / 迁移 | Prisma ORM 7 + Prisma Migrate 7                                     | 保留客户端与事务使用方式；SQLite 使用独立 schema/迁移；随安装包分发迁移 CLI 和目标平台 schema engine |
-| 输入契约   | Zod + 可序列化 DTO                                                  | UI、CLI、Agent 输出和恢复事件均做运行时校验                                                          |
-| 桌面通信   | 窄化 preload API + Electron IPC + MessagePort                       | renderer 不接触数据库、任意命令或通用 IPC 能力                                                       |
-| CLI 通信   | Unix domain socket + 版本化 JSON-RPC 2.0 / JSONL                    | 本机端点，不开放 TCP；CLI 与 UI 使用同一应用服务                                                     |
-| Agent      | 本地 Codex App Server，stdio JSON-RPC                               | 固定兼容范围，生成对应版本协议类型，复用现有认证                                                     |
-| SCM        | Git CLI + GitHub CLI                                                | Core 控制 fetch / push / PR / merge；不自建 OAuth 或保存 PAT                                         |
-| 日志       | Pino + 文件轮转                                                     | 结构化日志、敏感字段脱敏、请求与运行关联                                                             |
-| 测试       | Vitest、React Testing Library、Playwright                           | 核心状态机、真实临时 Git/SQLite、renderer 交互；另有打包后 Electron 冒烟                             |
-| 工具链     | PNPM Workspace、Oxlint、Oxfmt、TypeScript typecheck                 | 保留仓库已有质量工具                                                                                 |
+| 层         | 选择                                                                | 理由与边界                                                                                                 |
+| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 语言       | TypeScript，strict 模式                                             | 复用现有前后端知识与类型体系                                                                               |
+| 桌面       | Electron                                                            | 复用 React UI；直接使用 Node 进程、Git、Codex 与本地文件能力                                               |
+| 构建       | electron-vite                                                       | 统一 main / preload / renderer 构建；Core 作为独立 Node 目标入口打包                                       |
+| 安装包     | electron-builder 稳定版                                             | 首版输出 arm64 DMG；签名、公证与原生模块打包纳入发布验证                                                   |
+| UI         | React 19、React Router、TanStack Query                              | 延续现有栈；查询经 bridge 调用 Core，不保留 Cookie/HTTP 登录假设                                           |
+| 交互与样式 | CSS / PostCSS；优先复用现有组件，按需使用 Radix UI、dnd-kit、Lucide | 组件库不是产品约束；局部不合适时封装或自研，基础交互和可访问性保持一致                                     |
+| Markdown   | MDXEditor + react-markdown / remark-gfm                             | Markdown 为唯一存储源；禁用不可信 HTML 与可执行 MDX                                                        |
+| Core       | Node.js API、普通 TypeScript 模块、显式依赖注入                     | 不新建 NestJS HTTP 服务；Core 不导入 Electron，宿主适配层负责启动与通信                                    |
+| 本地存储   | SQLite + @prisma/adapter-better-sqlite3                             | Prisma 负责业务访问；better-sqlite3 负责驱动和维护；单 Core 写入                                           |
+| ORM / 迁移 | Prisma ORM 7 + Prisma Migrate 7                                     | 沿用 Prisma 工具与事务约定；SQLite 从零设计 schema/升级历史；随安装包分发迁移 CLI 和目标平台 schema engine |
+| 输入契约   | Zod + 可序列化 DTO                                                  | UI、CLI、Agent 输出和恢复事件均做运行时校验                                                                |
+| 桌面通信   | 窄化 preload API + Electron IPC + MessagePort                       | renderer 不接触数据库、任意命令或通用 IPC 能力                                                             |
+| CLI 通信   | Unix domain socket + 版本化 JSON-RPC 2.0 / JSONL                    | 本机端点，不开放 TCP；CLI 与 UI 使用同一应用服务                                                           |
+| Agent      | 本地 Codex App Server，stdio JSON-RPC                               | 固定兼容范围，生成对应版本协议类型，复用现有认证                                                           |
+| SCM        | Git CLI + GitHub CLI                                                | Core 控制 fetch / push / PR / merge；不自建 OAuth 或保存 PAT                                               |
+| 日志       | Pino + 文件轮转                                                     | 结构化日志、敏感字段脱敏、请求与运行关联                                                                   |
+| 测试       | Vitest、React Testing Library、Playwright                           | 核心状态机、真实临时 Git/SQLite、renderer 交互；另有打包后 Electron 冒烟                                   |
+| 工具链     | PNPM Workspace、Oxlint、Oxfmt、TypeScript typecheck                 | 保留仓库已有质量工具                                                                                       |
 
 版本策略：开发环境沿用 Node.js 24 和仓库固定 PNPM 版本。桌面运行时使用 Electron 自带 Node，不要求最终用户安装 Node。已有 React 等依赖在兼容时保留，新增 Electron、构建工具、SQLite adapter、better-sqlite3 使用非 prerelease 的稳定版本，M0 完成兼容测试后将确切版本与锁文件提交；不凭本文猜测补丁号，不直接复制文档中的 `@rc` 安装命令。
 
@@ -97,13 +97,15 @@ Prisma 以仓库现有 `7.10.0` 为验证基线，`prisma`、`@prisma/client`、
 
 数据库单独比较，不把“换为 SQLite”和“换 ORM”合并为一个决定：
 
-| 方案              | 已有基础 / 实际代价                                                                                      | 判断                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| SQLite + Prisma 7 | 仓库已使用 7.10.0、生成客户端、driver adapter、类型化关系查询与事务；仍需调整 schema、SQL 和桌面迁移部署 | 采用；保留已建立的使用方式，新增风险集中在数据库和宿主适配 |
-| SQLite + Drizzle  | 迁移可由应用内 migrator 执行，SQL 控制直接；需要重写查询/关系/事务类型接入并建立另一套约定               | 合理备选，但尚无性能或功能阻塞证明必须更换                 |
-| SQLite + 原生 SQL | 依赖少、控制直接                                                                                         | 关系查询、类型映射和迁移约定自行维护，当前不采用           |
+| 方案              | 已有基础 / 实际代价                                                                        | 判断                                             |
+| ----------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| SQLite + Prisma 7 | SQLite 和类型化事务满足需求，现有工具经验可用；新建模型与数据访问层，承担桌面迁移部署成本  | 采用；沿用工具体系，不继承旧表或旧服务           |
+| SQLite + Drizzle  | 嵌入式 migrator 简单，SQL 控制直接；同样需要为新版模型编写数据访问层，并建立另一套工具约定 | 合理备选；不以旧数据兼容或旧查询复用作为取舍依据 |
+| SQLite + 原生 SQL | 依赖少、控制直接                                                                           | 关系查询、类型映射和迁移约定自行维护，当前不采用 |
 
-保留 Prisma 不等于保留 PostgreSQL 模型。组织/成员耦合、数组、advisory lock、UUID native type 与 `Decimal(65,30)` 仍要调整。新建 SQLite schema 和独立迁移历史，不能运行旧 PostgreSQL migration，也不要求旧服务原样搬入 Core。复用查询与事务组织方式、合适的规则及测试场景；不能把旧查询数量直接当成可复用代码比例。
+新版数据模型从产品需要出发独立设计，不以旧 Prisma schema 为母版删字段，也不逐表翻译 PostgreSQL。组织/成员耦合、advisory lock、旧状态映射、数组及 `Decimal(65,30)` 等旧实现不作为兼容约束。首个 SQLite migration 直接创建新版所需表；旧 PostgreSQL migration、生成客户端、Repository 和 DTO 不进入新版运行链。
+
+沿用 Prisma 的理由是工具成熟度、类型化数据访问和已掌握的使用方式，而非需要保留旧模型或迁移旧数据。ORM、模型设计、业务服务是三个独立决定；可以保留 ORM，同时重建最小数据模型和数据访问层。旧代码只有在满足新模型、授权和事务边界且明显减少复杂度时才复用，没有复用比例要求。
 
 Prisma 7 的现有生成客户端使用查询编译器/WASM 路线；“必须携带旧式 Rust query engine”不能作为换 ORM 的理由。但 Prisma Migrate 的 schema engine 是另一个组件，仍有实际平台与打包成本。我们接受首版 arm64 的这项成本，采用 §11.1 的官方迁移路径；不为保留 ORM 自研 migration runner，也不宣称 Prisma 一定更小或更快。
 
@@ -113,7 +115,7 @@ Prisma 7 的现有生成客户端使用查询编译器/WASM 路线；“必须�
 
 ### 3.3 本轮证据及尚未验证的部分
 
-- 仓库检查：`prisma` / `@prisma/client` 为 7.10.0，`packages/db/src/client.ts` 已使用 `PrismaPg`；22 个服务端文件涉及 Prisma 类型或数据库客户端、旧 schema 有 30 个模型。此统计说明现有使用面，不等于新版可以原样复用全部模型。
+- 仓库检查：`prisma` / `@prisma/client` 为 7.10.0，`packages/db/src/client.ts` 已使用 `PrismaPg`；22 个服务端文件涉及 Prisma 类型或数据库客户端、旧 schema 有 30 个模型。此统计仅说明旧版规模；这 30 个模型没有保留义务，也不作为 ORM 必须沿用的约束。
 - 在临时目录使用已安装的 Prisma 7.10 CLI 验证了 SQLite 新库 `migrate deploy`、重复执行不重复迁移，实际迁移记录为一条。最初两次探针出现无详细原因的 schema-engine 错误，之后普通环境的新库与重复运行均成功，根因尚未确定；不能将这次小范围探针视为冷启动可靠性或桌面兼容性通过。
 - 本地 `codex app-server generate-ts` 已输出 0.154.0 的协议类型，确认存在持久化 Thread 参数、来源过滤、thread/turn/item 历史读取接口。只生成类型，不创建实际会话、不调用模型，不能证明桌面端会话可见或端到端恢复可用。
 - 当前仓库未安装 Electron、SQLite Prisma adapter 或 Drizzle。本轮未验证 Electron 安装包中的数据库访问/迁移，也未验证 Codex 桌面跳转；这些明确属于 M0，不以文档支持代替实测。
@@ -161,7 +163,9 @@ docs/superpowers/specs/     产品与架构规格
 
 Core 不依赖 UI、Electron 或 Prisma 生成类型；Adapter 实现 Core 定义的端口；contracts 使用业务 DTO，不直接导出数据库模型。Prisma client 和事务类型限制在 local-db 实现内，不能将旧 Service 的数据库依赖直接穿透新边界。模块边界先以目录表达，不为每个 Service 创建包。
 
-旧 `apps/web` 的可用组件逐项迁入 desktop renderer；旧 `apps/server`、`packages/db` 和部署脚本在新版闭环成立后移出活动构建，再从主线删除。历史由 Git 归档保留，不维护一份运行中的兼容后端。旧流水线不得被新版版本号修改意外触发，进入新版发布前必须拆除服务端自动发布入口。
+旧 `apps/web` 只选择有价值的组件迁入 desktop renderer。新版实施开始即可将旧 `apps/server`、旧 `packages/db`、组织权限/通知/GitHub App 服务、服务端部署脚本与专属测试移出活动构建并删除，无需先保持旧后端可运行或等待新交付闭环完成。依赖这些模块的前端接口和构建入口随之替换；不为保留旧接口搭兼容层。
+
+历史由 Git 归档保留，不复制一个 legacy 后端目录继续维护。删除主线代码与依赖不等于删除旧部署数据。M0 清理旧自动发布/部署入口，避免新版变更触发旧服务发布；新版 CI 只验证仍在交付的代码与必要的新行为。
 
 ## 5. 领域模型
 
@@ -196,6 +200,29 @@ Task 支持三种 kind：
 首版父子关系最多一层：GROUP 包含 CODE / MANUAL；叶子不能包含子任务。依赖只允许叶子之间建立，GROUP 不作为依赖端点。避免同时引入任意深度树与聚合依赖语义。父子关系和依赖是不同表、不同规则。新任务默认 Backlog；只有创建待办与规划编辑允许指定 Todo，不能在创建时指定执行或完成状态。
 
 同一仓库以规范化 git common dir 去重；首版同一仓库只属于一个 Project。一个 CODE Task 同时最多一个可写 Workspace 和一个活跃 PR；关闭未合并的 PR 后可由用户明确创建替代 PR，旧关联保留。
+
+### 5.1 最小模型与旧模型取舍
+
+上表定义业务概念和必要关联，不要求每个概念独立成表。实现时只有独立生命周期、查询需求、事务/唯一性约束或审计要求才拆表；简单值对象优先为列或带版本的 JSON。不得为了适配旧 schema 恢复组织/账号层级、通用权限框架、任意工作流编辑器或额外关联层。
+
+| 旧版内容                                                                           | 新版处理                                                                                                    |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| User、密码、登录 Session、组织 Workspace、WorkspaceMember、ProjectMember、成员角色 | 删除；本地单用户由桌面可信入口识别，无组织/账号外键前置条件                                                 |
+| Actor、负责人/报告人、成员目录与头像                                               | 不继承旧模型；活动保留 human/agent/system 来源及必要身份快照；AgentSession 表示执行会话，不是旧登录 Session |
+| Sprint、SprintSnapshot、成员估点和继承关系                                         | 删除；不为未来兼容保留字段或空表                                                                            |
+| Epic/Story/Bug/SUBTASK 类型层级及旧父子约束                                        | 用本规格 CODE/MANUAL/GROUP 与一层父子关系重新设计，旧事项无需映射                                           |
+| 自定义 Status、BoardColumnStatus 映射、双重高精度排序                              | 固定工作流状态和简单排序；不继承可配置状态引擎                                                              |
+| 评论修订、提及、邮件通知、订阅及投递队列                                           | 不迁入首版；保留新工作流需要的 TaskRevision、ActivityEvent 和 Decision                                      |
+| GitHub App installation、Webhook delivery、Commit/PR 多对多关联与旧自动化规则      | 删除；只保留本任务交付需要的 PR、检查、评审和远端状态关联                                                   |
+| 远程 API Token、组织作用域、旧 IssueExecution 领取/续租协议                        | 删除旧表与协议；受限本地 capability、AgentRun 和 Operation 按新版需要实现                                   |
+
+保留新版正确性必需的 TaskRevision/授权快照、Run/Session、Workspace/PR 关联、Operation 幂等、关键事件、设置版本和 scoped capability；不能因为瘦身而删除失败恢复、基础校验或人工授权依据。无需让旧用户 ID、事项编号、历史状态、PR 关联或 API 请求在新版继续有效。
+
+### 5.2 旧数据与新版数据库升级的边界
+
+- **旧版到新版的数据迁移：不做。** 不提供迁移向导、导入脚本、跨库 ETL、旧备份恢复到新版、双版本兼容、映射表或自动转换测试，也不将它们保留为 P1 待办。未来若出现新的明确需求，另行定义范围。
+- **新版数据库的初始化与后续 schema 升级：保留。** §11 的 Prisma Migrate、备份和失败恢复仅针对新版 SQLite；用户开始使用新版后，后续版本升级不能默认清空其任务、配置和运行记录。
+- 新版首次启动不读取旧 `.env`、连接旧 PostgreSQL 或扫描旧数据库来初始化数据。旧分支继续是代码参考，不是新版运行或测试前置条件。
 
 ## 6. 任务生命周期与用户动作
 
@@ -426,7 +453,7 @@ Ready 必须同时满足：当前需求授权有效、PR 非 draft 且 open、he
 
 PrismaClient 只由 local-db 创建，通过 `@prisma/adapter-better-sqlite3` 连接显式绝对文件路径。数据库配置不读取用户仓库 `.env`，也不回退到旧 PostgreSQL URL。连接策略、事务超时和 PRAGMA 对所有业务连接生效，必须通过测试验证，不假设配置某一个独立连接就能影响全部 Prisma 连接。纯业务读写统一使用 Prisma；原生 better-sqlite3 仅用于启动/停写维护阶段的备份、诊断和必要 PRAGMA，不引入并行的第二套业务 Repository。
 
-桌面迁移流程固定为：
+以下迁移专指新版 SQLite 的首次建库和新版之间的 schema 升级，不涉及旧 PostgreSQL 数据。桌面升级流程固定为：
 
 1. 开发时用 Prisma Migrate 7 生成 SQLite SQL migration，审查并提交；新增 partial unique index 等数据库约束时保留明确 SQL 和测试。schema/client 类型无法表达的约束也必须真实存在于数据库。
 2. 构建时生成 SQLite Prisma Client，打包所需 JS/WASM 资源、迁移目录、独立 Prisma config、Prisma CLI 及目标平台 schema-engine 可执行文件。原生 better-sqlite3 按 Electron ABI 重建；可执行文件放在正确的 unpacked resources 位置并参与签名。
@@ -572,13 +599,13 @@ CI/Review/Merge 策略变化按 §10 更新门禁并使旧 Ready/合并批准失
 
 ### M0 — 技术验证和旧版退出准备
 
-交付：确认归档基线；明确复用清单；固定依赖兼容矩阵；验证实际 Electron 包内 Prisma SQLite client、better-sqlite3、离线迁移 CLI/schema engine、utility process、CLI socket、Codex 认证/模型/审批/中断/恢复、沙箱限制及 GitHub 身份路线。增加无系统 Node 的冷启动/升级测试，并保留首次迁移失败的可诊断信息。验证 Git 提交和 worktree 公共目录的写入权限需求，不把全部仓库设为可写解决问题。
+交付：确认归档基线；明确按需复用/直接删除清单，移除旧后端和发布链的活动依赖；固定依赖兼容矩阵；验证实际 Electron 包内 Prisma SQLite client、better-sqlite3、离线迁移 CLI/schema engine、utility process、CLI socket、Codex 认证/模型/审批/中断/恢复、沙箱限制及 GitHub 身份路线。增加无系统 Node 的冷启动/升级测试，并保留首次迁移失败的可诊断信息。验证 Git 提交和 worktree 公共目录的写入权限需求，不把全部仓库设为可写解决问题。
 
 退出条件：一个安装包能启动本地 Core、持久化数据并运行受限 Codex 协议探针；验证过程不自动创建真实 PR 或消费未授权开发任务。打包、认证、沙箱任一阻塞不得带入自动执行阶段。对应决策写 ADR。另记录同一持久化 Thread 在 Forge、Codex CLI 和桌面端的实际可见性；外部客户端不可见不阻塞 Forge MVP，Forge 自身无法读取原始记录则阻塞对应集成。
 
 ### M1 — 本地任务基础
 
-交付：桌面壳、SQLite schema、Project、三类 Task、验收标准、依赖、活动、看板和详情。复用旧 UI，去除组织/Sprint 假设。基础表单校验、全局/项目设置骨架、环境检查与任务管理降级、重复写入和版本冲突在此阶段实现。
+交付：桌面壳、从零设计的最小 SQLite schema 及初始建库、Project、三类 Task、验收标准、依赖、活动、看板和详情。复用旧 UI，去除组织/Sprint 假设。基础表单校验、全局/项目设置骨架、环境检查与任务管理降级、重复写入和版本冲突在此阶段实现。
 
 退出条件：无需 PostgreSQL/Docker/旧服务端可管理任务；关闭重开状态不丢；循环依赖、非法状态与跨项目关联被拒绝。
 
@@ -604,51 +631,53 @@ CI/Review/Merge 策略变化按 §10 更新门禁并使旧 Ready/合并批准失
 
 交付：签名与公证 DMG、干净机器安装验证、迁移/备份恢复演练、日志轮转、文档和升级说明。恢复与幂等的核心实现不能推迟到本阶段。个人开发构建可未签名，但对外分发须通过签名、公证和安装验收；不指导用户关闭系统保护。
 
-P1：macOS Intel / Windows / Linux、并发调度、批量开工、自动安全清理、MCP、旧数据显式导入、多人/多身份、自动更新、经验证的 Codex 桌面跳转及显式双向接管。它们不阻塞首版，但不提前保留完整框架。
+P1：macOS Intel / Windows / Linux、并发调度、批量开工、自动安全清理、MCP、多人/多身份、自动更新、经验证的 Codex 桌面跳转及显式双向接管。它们不阻塞首版，但不提前保留完整框架。
 
 ## 14. 验收与测试策略
 
 ### 14.1 P0 验收矩阵
 
-| 编号 | 场景                                            | 可观察结果                                                                                        |
-| ---- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| A01  | 未安装旧服务端/数据库服务启动桌面               | 可导入项目并管理任务                                                                              |
-| A02  | Planner 创建三个带依赖与验收标准的任务          | 看板同步；未授权不启动 Developer                                                                  |
-| A03  | UI、CLI 尝试绕过授权或直接 Done                 | Core 拒绝，状态和历史无伪造完成                                                                   |
-| A04  | 连续两次 Start 或重放同一请求                   | 只有一个有效授权执行链和可写 Worktree                                                             |
-| A05  | 依赖未完成、循环依赖、跨项目依赖                | 拒绝非法写入/开工；原因可见                                                                       |
-| A06  | 开发成功并提交                                  | Core 核验产物后创建唯一 PR，关联 SHA 与任务                                                       |
-| A07  | PR 创建成功但本地写回前崩溃                     | 重启重新发现同一个 PR，不重复创建                                                                 |
-| A08  | Developer 或 Core 中断                          | 无伪成功；确认旧进程结束前不启动第二个写入者                                                      |
-| A09  | Reviewer 找到代码问题且启用自动返工             | 聚合反馈，只启动一轮 Fix；原 Workspace 复用                                                       |
-| A10  | Review error、鉴权失败或 CI unavailable         | 等待/重试基础设施，不自动修改代码                                                                 |
-| A11  | CI 缺失、仍在运行、skipped 或规则未知           | 不误进入 Ready；no-ci 需要明确用户策略                                                            |
-| A12  | 旧 SHA 的 CI/Review 在新提交后到达              | 只保存历史，不改变当前门禁、不重复返工                                                            |
-| A13  | Ready 后观察到 head/base/需求/策略改变          | Ready 和相关 Merge 授权失效，检查重新计算；请求已发出的竞态按 §10.4 协调                          |
-| A14  | Merge 点击后 head 再变化                        | SHA 匹配保护拒绝旧授权；不得合并新提交                                                            |
-| A15  | 用户在 GitHub 提前合并，或取消后合并            | 本地同步 Done，保留外部合并与原状态事件                                                           |
-| A16  | PR 关闭未合并、Git 冲突、身份改变               | 明确阻塞；无自动 force push、切账号或第二 PR                                                      |
-| A17  | 返工三轮仍未通过、提交无变化、预算耗尽          | 暂停并提供人工决策，不靠换 Session 重置计数                                                       |
-| A18  | 审批时重启或收到过期审批响应                    | 原请求失效；不能批准新 turn 的不同操作                                                            |
-| A19  | 用户编辑活动任务需求                            | 原授权停止；Reauthorize 后 Developer 核对新修订，旧 Review 不复用                                 |
-| A20  | GROUP/MANUAL/无代码 CODE                        | 按各自规则完结，不要求虚构 PR；Agent 不能自行验收                                                 |
-| A21  | 用户工作目录脏、Worktree 有未提交/未备份内容    | 原目录不变；不自动清理或丢弃内容                                                                  |
-| A22  | CLI 冒充 Owner、跨项目 token、恶意 IPC 输入     | 拒绝；不会获得任意命令、数据库或合并能力                                                          |
-| A23  | Agent 尝试读取 Forge 数据/凭据、调用 Owner 动作 | 沙箱或 Core 拒绝；支持平台实测通过才可启用执行                                                    |
-| A24  | setup 运行中断、SQLite 升级失败、网络断开       | 状态可解释、保留数据、有具体恢复动作                                                              |
-| A25  | 安装 DMG、首次启动、重启、备份恢复              | 原生模块可加载，SQLite 迁移可用，任务关联可恢复                                                   |
-| A26  | 运行中/结束后打开原始对话                       | 可分页读取实际消息和工具记录；只读打开不产生新 turn、不占 Agent 执行槽或消费模型资源              |
-| A27  | Codex 历史删除、存储切换或缓存缺失              | Task/PR 状态保留；原始记录明确不可用/不完整，不能用摘要冒充                                       |
-| A28  | Developer 正在执行时打开 Planner                | 独立规划通道可用；Planner token、工具权限和进程环境不进入 Developer/Reviewer                      |
-| A29  | 发现外部客户端发起的 turn 或意外提交            | 暂停相应自动链，明确人工协调；不承诺无法观测的跨客户端互斥                                        |
-| A30  | 无系统 Node、无网络的干净机器首启/升级          | 随包 Prisma client/CLI/schema engine 可用；迁移重复执行无重复记录，失败保留原库；没有临时安装依赖 |
-| A31  | 缺少 Codex/gh、未登录或外部服务断网             | 本地任务管理可用；相关执行功能显示具体阻塞原因、检查时间和修复/重试入口                           |
-| A32  | Finder 启动找不到工具或配置的路径失效           | 展示实际路径，允许选择可执行文件并重检；不执行任意 shell 初始化文件                               |
-| A33  | 必填项、超长文本、非法预算、循环依赖、重复提交  | 字段反馈清晰，Core 同样拒绝非法命令；输入不丢失，不产生重复记录                                   |
-| A34  | 设置持久化、继承/覆盖、运行中修改默认值         | 重启后有效；显示最终值与来源；活动执行保持快照，门禁策略变更按规则失效                            |
-| A35  | 敏感配置、凭据引用更换和诊断导出                | 无明文写入数据库/日志；旧授权不静默使用新值，导出范围可预览                                       |
-| A36  | 自研/第三方组件的键盘、焦点、中文输入与长内容   | 核心操作有非拖拽入口；焦点/错误状态明确，组合输入不误提交、弹层可用                               |
-| A37  | 同一需求下因模型/凭据失效暂停后修改执行配置     | Reauthorize 产生替代授权并按变更类型继续，累计用量/返工计数不清零；默认值编辑不暗改当前执行       |
+| 编号 | 场景                                                       | 可观察结果                                                                                        |
+| ---- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| A01  | 未安装旧服务端/数据库服务启动桌面                          | 可导入项目并管理任务                                                                              |
+| A02  | Planner 创建三个带依赖与验收标准的任务                     | 看板同步；未授权不启动 Developer                                                                  |
+| A03  | UI、CLI 尝试绕过授权或直接 Done                            | Core 拒绝，状态和历史无伪造完成                                                                   |
+| A04  | 连续两次 Start 或重放同一请求                              | 只有一个有效授权执行链和可写 Worktree                                                             |
+| A05  | 依赖未完成、循环依赖、跨项目依赖                           | 拒绝非法写入/开工；原因可见                                                                       |
+| A06  | 开发成功并提交                                             | Core 核验产物后创建唯一 PR，关联 SHA 与任务                                                       |
+| A07  | PR 创建成功但本地写回前崩溃                                | 重启重新发现同一个 PR，不重复创建                                                                 |
+| A08  | Developer 或 Core 中断                                     | 无伪成功；确认旧进程结束前不启动第二个写入者                                                      |
+| A09  | Reviewer 找到代码问题且启用自动返工                        | 聚合反馈，只启动一轮 Fix；原 Workspace 复用                                                       |
+| A10  | Review error、鉴权失败或 CI unavailable                    | 等待/重试基础设施，不自动修改代码                                                                 |
+| A11  | CI 缺失、仍在运行、skipped 或规则未知                      | 不误进入 Ready；no-ci 需要明确用户策略                                                            |
+| A12  | 旧 SHA 的 CI/Review 在新提交后到达                         | 只保存历史，不改变当前门禁、不重复返工                                                            |
+| A13  | Ready 后观察到 head/base/需求/策略改变                     | Ready 和相关 Merge 授权失效，检查重新计算；请求已发出的竞态按 §10.4 协调                          |
+| A14  | Merge 点击后 head 再变化                                   | SHA 匹配保护拒绝旧授权；不得合并新提交                                                            |
+| A15  | 用户在 GitHub 提前合并，或取消后合并                       | 本地同步 Done，保留外部合并与原状态事件                                                           |
+| A16  | PR 关闭未合并、Git 冲突、身份改变                          | 明确阻塞；无自动 force push、切账号或第二 PR                                                      |
+| A17  | 返工三轮仍未通过、提交无变化、预算耗尽                     | 暂停并提供人工决策，不靠换 Session 重置计数                                                       |
+| A18  | 审批时重启或收到过期审批响应                               | 原请求失效；不能批准新 turn 的不同操作                                                            |
+| A19  | 用户编辑活动任务需求                                       | 原授权停止；Reauthorize 后 Developer 核对新修订，旧 Review 不复用                                 |
+| A20  | GROUP/MANUAL/无代码 CODE                                   | 按各自规则完结，不要求虚构 PR；Agent 不能自行验收                                                 |
+| A21  | 用户工作目录脏、Worktree 有未提交/未备份内容               | 原目录不变；不自动清理或丢弃内容                                                                  |
+| A22  | CLI 冒充 Owner、跨项目 token、恶意 IPC 输入                | 拒绝；不会获得任意命令、数据库或合并能力                                                          |
+| A23  | Agent 尝试读取 Forge 数据/凭据、调用 Owner 动作            | 沙箱或 Core 拒绝；支持平台实测通过才可启用执行                                                    |
+| A24  | setup 运行中断、SQLite 升级失败、网络断开                  | 状态可解释、保留数据、有具体恢复动作                                                              |
+| A25  | 安装 DMG、首次启动、重启、备份恢复                         | 原生模块可加载，SQLite 迁移可用，任务关联可恢复                                                   |
+| A26  | 运行中/结束后打开原始对话                                  | 可分页读取实际消息和工具记录；只读打开不产生新 turn、不占 Agent 执行槽或消费模型资源              |
+| A27  | Codex 历史删除、存储切换或缓存缺失                         | Task/PR 状态保留；原始记录明确不可用/不完整，不能用摘要冒充                                       |
+| A28  | Developer 正在执行时打开 Planner                           | 独立规划通道可用；Planner token、工具权限和进程环境不进入 Developer/Reviewer                      |
+| A29  | 发现外部客户端发起的 turn 或意外提交                       | 暂停相应自动链，明确人工协调；不承诺无法观测的跨客户端互斥                                        |
+| A30  | 无系统 Node、无网络的干净机器首启/升级                     | 随包 Prisma client/CLI/schema engine 可用；迁移重复执行无重复记录，失败保留原库；没有临时安装依赖 |
+| A31  | 缺少 Codex/gh、未登录或外部服务断网                        | 本地任务管理可用；相关执行功能显示具体阻塞原因、检查时间和修复/重试入口                           |
+| A32  | Finder 启动找不到工具或配置的路径失效                      | 展示实际路径，允许选择可执行文件并重检；不执行任意 shell 初始化文件                               |
+| A33  | 必填项、超长文本、非法预算、循环依赖、重复提交             | 字段反馈清晰，Core 同样拒绝非法命令；输入不丢失，不产生重复记录                                   |
+| A34  | 设置持久化、继承/覆盖、运行中修改默认值                    | 重启后有效；显示最终值与来源；活动执行保持快照，门禁策略变更按规则失效                            |
+| A35  | 敏感配置、凭据引用更换和诊断导出                           | 无明文写入数据库/日志；旧授权不静默使用新值，导出范围可预览                                       |
+| A36  | 自研/第三方组件的键盘、焦点、中文输入与长内容              | 核心操作有非拖拽入口；焦点/错误状态明确，组合输入不误提交、弹层可用                               |
+| A37  | 同一需求下因模型/凭据失效暂停后修改执行配置                | Reauthorize 产生替代授权并按变更类型继续，累计用量/返工计数不清零；默认值编辑不暗改当前执行       |
+| A38  | 无旧账号、旧数据库、旧迁移文件与旧服务端代码的环境首次运行 | 可创建 Project/Task 并初始化新版 SQLite；不读取旧 .env、不连接 PostgreSQL、不要求数据迁移         |
+| A39  | 新版发布后升级已有新版数据库                               | 保留已有新版任务、设置和运行记录，按 §11 执行 schema 升级/备份恢复；不以不迁移旧数据为由重建空库  |
 
 ### 14.2 分层验证
 
@@ -667,7 +696,7 @@ P1：macOS Intel / Windows / Linux、并发调度、批量开工、自动安全�
 1. Electron / electron-vite / electron-builder / Prisma 7 / SQLite adapter / better-sqlite3 的确切稳定版本，以及 Electron 内嵌 Node 和 macOS 最低版本；记录实际安装包测试结果。
 2. Codex 兼容版本、生成协议类型、审批/恢复事件行为、受限 CLI 可用性、按角色进程环境与敏感目录隔离验证；记录共享 CODEX_HOME 下 CLI/桌面会话可见性，不默认承诺互通。
 3. GitHub 身份、Git push 凭据路线、check/branch protection 可读性及 SHA 匹配合并行为。
-4. 旧组件的迁入列表和被移除的多人/Sprint/HTTP 假设；旧发布流水线的退出变更。
+4. 值得复用的旧组件与直接删除的模型/服务/专属测试列表；新模型无旧组织/账号依赖、无旧数据兼容层，旧发布流水线退出。
 5. 新数据目录与应用 ID，避免覆盖旧 CLI 配置和旧服务端数据；新版 CLI 配置使用独立 `forge-desktop` 命名空间。验证 Finder 环境下的工具定位及系统 Keychain 引用/读取失败行为。
 
 实现者可自行决定内部类名、组件拆分、非业务性的布局细节和测试 fixture；不能自行扩展平台、恢复旧团队功能、改变授权/完成规则，或用 Full Access 绕过本规格的隔离要求。
