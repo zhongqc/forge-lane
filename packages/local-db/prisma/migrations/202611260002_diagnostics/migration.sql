@@ -1,0 +1,1 @@
+CREATE TABLE Diagnostic (key TEXT NOT NULL PRIMARY KEY, configKey TEXT NOT NULL, "values" JSONB NOT NULL);

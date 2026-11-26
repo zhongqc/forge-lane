@@ -1,3 +1,4 @@
+import { taskStore } from './task-store';
 import { createHash, randomUUID } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
@@ -82,6 +83,25 @@ export async function openStore(
     );
   }
   return {
+    ...taskStore(db, mutate, async (fn) => {
+      await tail;
+      return fn();
+    }),
+    async readDiagnostic(key, configKey) {
+      await tail;
+      const row = await db.diagnostic.findUnique({ where: { key } });
+      return row?.configKey === configKey ? row.values : null;
+    },
+    async saveDiagnostic(key, configKey, values) {
+      await write(async () => {
+        const json = JSON.parse(JSON.stringify(values)) as Prisma.InputJsonValue;
+        await db.diagnostic.upsert({
+          where: { key },
+          create: { key, configKey, values: json },
+          update: { configKey, values: json },
+        });
+      });
+    },
     async snapshot() {
       await tail;
       return db.$transaction(async (tx) => {

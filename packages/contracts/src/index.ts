@@ -1,3 +1,4 @@
+import { taskCommandSchemas, type TaskCommand, type Board, type TaskDetail, type Task } from './tasks';
 import { z } from 'zod';
 
 export const PROTOCOL_VERSION = 1;
@@ -26,6 +27,12 @@ export const defaultSettings: Settings = {
   codexPath: '',
 };
 export const commandSchema = z.discriminatedUnion('method', [
+  ...taskCommandSchemas,
+  z.object({ method: z.literal('task.board'), projectId: z.uuid() }).strict(),
+  z
+    .object({ method: z.literal('project.check'), projectId: z.uuid(), refresh: z.boolean().default(false) })
+    .strict(),
+  z.object({ method: z.literal('task.detail'), taskId: z.uuid() }).strict(),
   z.object({ method: z.literal('snapshot') }).strict(),
   z.object({ method: z.literal('environment.check') }).strict(),
   z
@@ -53,6 +60,7 @@ export type Command = z.infer<typeof commandSchema>;
 export type Project = {
   id: string;
   name: string;
+  description: string;
   repositoryPath: string;
   gitCommonDir: string;
   version: number;
@@ -61,9 +69,19 @@ export type Project = {
 export type VersionedSettings = { version: number; values: Settings };
 export type Snapshot = {
   protocolVersion: number;
+  environmentChecks: EnvironmentCheck[] | null;
   projects: Project[];
   settings: VersionedSettings;
   dataDirectory: string;
+};
+export type ProjectCheck = {
+  checkedAt: string;
+  status: 'passed' | 'warning' | 'failed' | 'unknown';
+  remote: string | null;
+  defaultBranch: string | null;
+  githubLogin: string | null;
+  repositoryPermission: string | null;
+  detail: string;
 };
 export type EnvironmentCheck = {
   tool: 'git' | 'gh' | 'codex';
@@ -96,6 +114,10 @@ export function errorReply(error: unknown): Reply<never> {
   return { ok: false, error: { code: 'INTERNAL', message: '操作失败，请检查本地诊断信息；数据未被重置。' } };
 }
 export type DesktopBridge = {
+  checkProject(projectId: string, refresh?: boolean): Promise<Reply<ProjectCheck | null>>;
+  taskBoard(projectId: string): Promise<Reply<Board>>;
+  taskDetail(taskId: string): Promise<Reply<TaskDetail>>;
+  mutateTask(command: TaskCommand): Promise<Reply<Task | { id: string; version: number }>>;
   snapshot(): Promise<Reply<Snapshot>>;
   saveSettings(
     input: Omit<Extract<Command, { method: 'settings.save' }>, 'method'>,

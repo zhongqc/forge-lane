@@ -152,7 +152,7 @@ it('upgrades a newer app schema without losing settings and retains failed migra
   const { cp } = await import('node:fs/promises');
   const next = join(dir, 'next-migrations');
   await cp(migrations, next, { recursive: true });
-  const v2 = join(next, '202611250002_probe');
+  const v2 = join(next, '209901010001_probe');
   await mkdir(v2);
   await writeFile(
     join(v2, 'migration.sql'),
@@ -178,7 +178,7 @@ it('upgrades a newer app schema without losing settings and retains failed migra
   const upgraded = await openStore(path);
   expect((await upgraded.snapshot()).settings.values.fontSize).toBe(18);
   await upgraded.close();
-  const v3 = join(next, '202611250003_broken');
+  const v3 = join(next, '209901010002_broken');
   await mkdir(v3);
   await writeFile(join(v3, 'migration.sql'), 'INVALID SQL;');
   expect(deploy).toThrow();
