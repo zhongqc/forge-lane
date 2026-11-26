@@ -5,6 +5,7 @@ export class CodexRpc {
   private sequence = 0;
   private buffer = '';
   private ended = false;
+  private closed = false;
   private pending = new Map<
     number,
     { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
@@ -47,7 +48,10 @@ export class CodexRpc {
               this.pending.delete(m.id);
               if (m.error) p.reject(new Error(`RPC ${m.error.code}: ${m.error.message}`));
               else if ('result' in m) p.resolve(m.result);
-              else throw new Error('invalid response');
+              else {
+                p.reject(new Error('Invalid RPC response'));
+                this.fail(new Error('Invalid RPC response'));
+              }
             }
           }
         } catch {
@@ -56,7 +60,10 @@ export class CodexRpc {
       }
     });
     this.child.on('error', (e) => this.fail(e));
-    this.child.on('exit', () => this.fail(new Error('RPC process exited')));
+    this.child.on('close', () => {
+      this.closed = true;
+      this.fail(new Error('RPC process exited'));
+    });
     this.child.stdin.on('error', (e) => this.fail(e));
   }
   private send(value: unknown) {
@@ -92,8 +99,8 @@ export class CodexRpc {
   }
   async close() {
     const exited = new Promise<void>((resolve) => {
-      if (this.child.exitCode !== null || this.child.signalCode !== null) return resolve();
-      this.child.once('exit', () => resolve());
+      if (this.closed) return resolve();
+      this.child.once('close', () => resolve());
     });
     this.fail(new Error('RPC closed'));
     const timer = setTimeout(() => {

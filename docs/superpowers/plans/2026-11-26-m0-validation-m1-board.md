@@ -35,47 +35,59 @@
 **Files:** `packages/adapters/src/codex-rpc.ts`, `tests/desktop/codex-rpc.test.ts`, `scripts/m0-*.mjs`, `docs/adr/0002-m0-validation.md`, generated compatible protocol subset in `packages/adapters/src/codex-protocol/` as needed.
 **Interfaces:** bounded stdio `CodexRpc.request(method, params)` / notifications / explicit approval replies / close; reports contain status, version, time and redacted evidence only.
 
-- [ ] Write fake-process protocol tests for correlation, notifications, pending server requests, invalid input, timeout, cancellation and child exit; see red before implementation.
+- [x] Write fake-process protocol tests for correlation, notifications, pending server requests, invalid input, timeout, cancellation and child exit; see red before implementation.
 - [ ] Inspect generated 0.154.0 schema/config and official docs; run real account/model/config/history/interrupt/approval/resume probes against a newly-created test thread, not existing conversations.
 - [ ] Run real sandbox read/write/network/socket and Git worktree/common-dir tests using only fixture sentinels. Record actual restrictions and keep unsupported execution disabled.
 - [ ] Verify GitHub identity/auth route and read-only repository/check metadata, Keychain fixture write/read/delete/missing behavior, and actual packaged cold start/upgrade without network/system Node.
-- [ ] Record complete gate matrix, evidence, supported version and remaining external limitations; commit M0 results before M1 implementation.
+- [x] Record complete gate matrix, evidence, supported version and remaining external limitations; commit M0 results before M1 implementation.
 
 ### Task 2: Task contracts and domain rules
 
 **Files:** `packages/contracts/src/tasks.ts`, `packages/core/src/task-policy.ts`, `tests/desktop/task-policy.test.ts`.
 **Interfaces:** task DTOs include allowedActions/reasons, revisions, dependencies and parent summary. Explicit commands create/update/move/start-manual/accept/cancel/archive; no arbitrary status write. Project settings include name/description and validated repository metadata.
 
-- [ ] Write failing boundary/state tests including forbidden CODE Done/Start, invalid create state, dependency cycle/cross-project/group endpoints, one-level parent rules, group completion and no reopen.
-- [ ] Implement pure policies and strict Zod commands; map unavailable execution to disabled reasons.
-- [ ] Run targeted tests, then full suite.
+- [x] Write failing boundary/state tests including forbidden CODE Done/Start, invalid create state, dependency cycle/cross-project/group endpoints, one-level parent rules, group completion and no reopen.
+- [x] Implement pure policies and strict Zod commands; map unavailable execution to disabled reasons.
+- [x] Run targeted tests, then full suite.
 
 ### Task 3: Durable M1 application commands
 
 **Files:** `packages/local-db/prisma/schema.prisma`, new immutable migration, `packages/local-db/src/task-store.ts`, Core ports/service, `tests/desktop/tasks.test.ts`.
 **Interfaces:** Store provides projectBoard, taskDetail, create/update/transition/reorder/archive and project settings commands; all writes include optimistic concurrency, receipts and event history in one transaction.
 
-- [ ] Write failing real SQLite tests for complete M1 flow, multi-project numbering, transactional revisions/activity, parent versions, concurrent cycle insertion, replay, sorting and restart persistence.
-- [ ] Generate/review new Prisma migration; preserve foundation DBs and backups.
-- [ ] Implement same-project FKs/uniqueness, ordered dependency/parent checks and version bumps; group summaries recompute transactionally.
-- [ ] Run all tests; verify upgrade from initial schema preserves projects/settings/tasks; commit storage/Core deliverable.
+- [x] Write failing real SQLite tests for complete M1 flow, multi-project numbering, transactional revisions/activity, parent versions, concurrent cycle insertion, replay, sorting and restart persistence.
+- [x] Generate/review new Prisma migration; preserve foundation DBs and backups.
+- [x] Implement same-project FKs/uniqueness, ordered dependency/parent checks and version bumps; group summaries recompute transactionally.
+- [x] Run all tests; verify upgrade from initial schema preserves projects/settings/tasks; commit storage/Core deliverable.
 
 ### Task 4: Board, details, project settings and environment diagnostics
 
 **Files:** `apps/desktop/src/renderer/{App,Board,TaskDetail,ProjectSettings}.tsx`, focused form/hooks/components/styles; main/preload/contracts channels.
 **Interfaces:** named bridge methods; board query snapshots plus event cursor; refetch after mutations/reconnect; drafts retained on error/conflict; Core controls allowed actions.
 
-- [ ] Add failing user-facing tests for create/edit, keyboard status/sort, dependency errors, MANUAL/GROUP completion, filtering, archive, settings save and restart.
-- [ ] Implement selectable projects, fixed columns, title/search/priority/label/group/status filtering, ordered cards and drag-equivalent menu actions.
-- [ ] Implement detail Markdown source editing/preview, acceptance, dependencies, group membership/progress, revision/activity history, disabled CODE execution reason and terminal states.
-- [ ] Provide project basic/settings skeleton, saved effective environment results and repair controls; expose only implemented settings. Ensure first-launch checks can be skipped and offline management remains usable.
-- [ ] Verify dirty navigation/close, IME, focus, long input, empty/no-match, narrow window and large font behavior.
+- [x] Add failing user-facing tests for create/edit, keyboard status/sort, dependency errors, MANUAL/GROUP completion, filtering, archive, settings save and restart.
+- [x] Implement selectable projects, fixed columns, title/search/priority/label/group/status filtering, ordered cards and drag-equivalent menu actions.
+- [x] Implement detail Markdown source editing/preview, acceptance, dependencies, group membership/progress, revision/activity history, disabled CODE execution reason and terminal states.
+- [x] Provide project basic/settings skeleton, saved effective environment results and repair controls; expose only implemented settings. Ensure first-launch checks can be skipped and offline management remains usable.
+- [x] Verify dirty navigation/close, IME, focus, long input, empty/no-match, narrow window and large font behavior.
 
 ### Task 5: Complete M1 acceptance and review
 
 **Files:** desktop acceptance tests, README/spec status, ADR evidence, PR description.
 
-- [ ] Run full unit/integration/UI suite, lint/format/typecheck/build and actual packaged upgrade/restart smoke.
-- [ ] Exercise A01/A03/A05/A20/A31–A34/A36/A38/A39 within M1 scope; record exact later-stage exclusions.
-- [ ] Run one independent whole-change review; fix important findings with regression tests.
-- [ ] Commit, push current PR branch, update PR around final M0/M1 scope and report any remaining failed M0 execution gates without claiming M2 readiness.
+- [x] Run full unit/integration/UI suite, lint/format/typecheck/build and actual packaged upgrade/restart smoke.
+- [x] Exercise A01/A03/A05/A20/A31–A34/A36/A38/A39 within M1 scope; record exact later-stage exclusions.
+- [x] Run one independent whole-change review; fix important findings with regression tests.
+- [x] Commit, push current PR branch, update PR around final M0/M1 scope and report any remaining failed M0 execution gates without claiming M2 readiness.
+
+## Completion evidence — 2026-11-26
+
+M1 Tasks 2–5 complete. M0 investigation recorded in ADR 0002; unchecked model/permission capabilities remain blocked, not silently accepted. Independent read-only review completed with one fix pass. No external model calls, push/PR/merge test operations or real-secret reads were used in the M0 probes.
+
+- `pnpm test`: 28 passed (7 files), actual Electron Node ABI and real SQLite/Git/socket fixtures.
+- `pnpm test:desktop`: 7 passed; packaged app: 6 passed, development URL scenario skipped.
+- `node scripts/test-offline-migration.mjs`: package's production migration/Prisma/SQLite cold startup, M0 upgrade, backup, repeat and preserved settings pass under real network denial with PATH lacking Node.
+- Real browser offline-event test and IPC failure recovery preserve local functionality/drafts. Physical clean-machine full-GUI offline certification remains open because outer macOS sandbox-exec conflicts with Chromium's sandbox initialization.
+- `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm build`, unsigned arm64 `pnpm package:dir`: pass.
+- Independent review fixed cancelled group membership, offline query pausing, draft unmounting on Core errors, explicit conflict recovery, cross-column drag propagation, and config-bound saved diagnostics. Detail source/preview uses safe React Markdown rather than MDX.
+- Commits: `5a7d531` M0 probe/gates; `e2d4210` M1 Core/storage; final UI/acceptance commit follows. Existing PR #19 remains the review target; no merge.

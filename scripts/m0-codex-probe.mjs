@@ -73,6 +73,89 @@ try {
         return { exitCode: r.exitCode, stdout: r.stdout?.slice(0, 100), stderr: r.stderr?.slice(0, 180) };
       });
   }
+  // Only synthetic repositories and socket responses; no business code or secrets.
+  const { createServer } = await import('node:http');
+  const socket = join(dir, 'fake-owner.sock');
+  const server = createServer((_req, res) => res.end('FAKE_SOCKET_ONLY'));
+  await new Promise((resolve) => server.listen(socket, resolve));
+  try {
+    await step('readOnly.ownerSocket', async () => {
+      const r = await rpc.request('command/exec', {
+        command: ['/usr/bin/curl', '--max-time', '2', '--unix-socket', socket, 'http://localhost'],
+        cwd: work,
+        sandboxPolicy: { type: 'readOnly', networkAccess: false },
+        timeoutMs: 3000,
+        outputBytesCap: 1024,
+      });
+      return { exitCode: r.exitCode, reachable: r.stdout.includes('FAKE_SOCKET_ONLY') };
+    });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+  const actualGit = execFileSync('/usr/bin/xcrun', ['--find', 'git'], { encoding: 'utf8' }).trim();
+  const repo = join(dir, 'repo'),
+    tree = join(dir, 'tree');
+  const git = (args) =>
+    execFileSync('/usr/bin/git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  git(['init', '-b', 'main', repo]);
+  git([
+    '-C',
+    repo,
+    '-c',
+    'user.name=Fixture',
+    '-c',
+    'user.email=fixture@invalid',
+    'commit',
+    '--allow-empty',
+    '-m',
+    'fixture',
+  ]);
+  git(['-C', repo, 'worktree', 'add', '-b', 'probe', tree]);
+  await writeFile(join(tree, 'fixture.txt'), 'fixture');
+  for (const commonWritable of [false, true])
+    await step(`git.commonWritable.${commonWritable}`, async () => {
+      const r = await rpc.request('command/exec', {
+        command: [actualGit, '-C', tree, 'add', 'fixture.txt'],
+        cwd: tree,
+        sandboxPolicy: {
+          type: 'workspaceWrite',
+          writableRoots: commonWritable ? [tree, join(repo, '.git')] : [tree],
+          networkAccess: false,
+          excludeTmpdirEnvVar: true,
+          excludeSlashTmp: true,
+        },
+        timeoutMs: 3000,
+        outputBytesCap: 1024,
+      });
+      return { exitCode: r.exitCode, stderr: r.stderr.slice(0, 160) };
+    });
+  await step('git.commitWithCommonDir', async () => {
+    const r = await rpc.request('command/exec', {
+      command: [
+        actualGit,
+        '-C',
+        tree,
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@invalid',
+        'commit',
+        '-m',
+        'sandbox fixture',
+      ],
+      cwd: tree,
+      sandboxPolicy: {
+        type: 'workspaceWrite',
+        writableRoots: [tree, join(repo, '.git')],
+        networkAccess: false,
+        excludeTmpdirEnvVar: true,
+        excludeSlashTmp: true,
+      },
+      timeoutMs: 3000,
+      outputBytesCap: 1024,
+    });
+    return { exitCode: r.exitCode, stderr: r.stderr.slice(0, 160) };
+  });
   // Refuse a model turn when basic read isolation fails: model tools could access the shared auth home.
   report.modelTurn =
     'blocked: outside-workspace fake authentication sentinel was readable; no model tool session started';

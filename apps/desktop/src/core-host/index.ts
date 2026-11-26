@@ -1,3 +1,4 @@
+import { checkProject } from '../../../../packages/adapters/src/project-check';
 import { join } from 'node:path';
 import { CoreService } from '../../../../packages/core/src/service';
 import { openStore } from '../../../../packages/local-db/src/store';
@@ -14,7 +15,7 @@ async function main() {
   if (inspectDatabase(database, join(appDirectory, 'packages/local-db/prisma/migrations')).pending)
     throw new Error('数据库迁移尚未完成');
   const store = await openStore(database);
-  const core = new CoreService(store, { inspectRepository, checkEnvironment }, dataDirectory);
+  const core = new CoreService(store, { inspectRepository, checkEnvironment, checkProject }, dataDirectory);
   let rpc: Awaited<ReturnType<typeof startLocalServer>>;
   try {
     rpc = await startLocalServer(await socketPath(dataDirectory, true));

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { CodexRpc } from '../../packages/adapters/src/codex-rpc';
-const fixture = `const r=require('readline').createInterface({input:process.stdin}); r.on('line',l=>{const m=JSON.parse(l); if(m.method==='exit')process.exit(0); if(m.method==='bad')return console.log('bad'); if(m.method==='wait')return; if(m.method==='approve'){console.log(JSON.stringify({id:'server',method:'approval',params:{}}));return;} console.log(JSON.stringify({method:'notice',params:{}})); console.log(JSON.stringify({id:m.id,result:m.params}));});`;
+const fixture = `let approvalId;const r=require('readline').createInterface({input:process.stdin}); r.on('line',l=>{const m=JSON.parse(l);if(m.id==='server')return console.log(JSON.stringify({id:approvalId,result:m.result}));if(m.method==='invalid')return console.log(JSON.stringify({id:m.id})); if(m.method==='exit')process.exit(0); if(m.method==='bad')return console.log('bad'); if(m.method==='wait')return; if(m.method==='approve'){approvalId=m.id;console.log(JSON.stringify({id:'server',method:'approval',params:{}}));return;} console.log(JSON.stringify({method:'notice',params:{}})); console.log(JSON.stringify({id:m.id,result:m.params}));});`;
 const open = () =>
   new CodexRpc(process.execPath, ['-e', fixture], { ...process.env, ELECTRON_RUN_AS_NODE: '1' });
 it('correlates concurrent requests and notifications, denies unhandled approvals', async () => {
@@ -13,6 +13,7 @@ it('correlates concurrent requests and notifications, denies unhandled approvals
       { a: 2 },
     ]);
     expect(notices).toEqual(['notice', 'notice']);
+    expect(await rpc.request('approve')).toEqual({ decision: 'decline' });
     await expect(rpc.request('wait', {}, 30)).rejects.toThrow('timeout');
   } finally {
     await rpc.close();
@@ -29,4 +30,25 @@ it('rejects malformed frames and child exit and cancels pending requests on clos
   const rejected = expect(pending).rejects.toThrow();
   await rpc.close();
   await rejected;
+});
+
+it('settles invalid responses and closes failed spawn without hanging', async () => {
+  const rpc = open();
+  try {
+    const bounded = Promise.race([
+      rpc.request('invalid'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('hung')), 300)),
+    ]);
+    await expect(bounded).rejects.toThrow(/Invalid/);
+  } finally {
+    await rpc.close();
+  }
+  const missing = new CodexRpc('/does/not/exist', [], {});
+  await expect(missing.request('initialize')).rejects.toThrow();
+  await expect(
+    Promise.race([
+      missing.close().then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 300)),
+    ]),
+  ).resolves.toBe(true);
 });

@@ -1,3 +1,4 @@
+import { Board } from './Board';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -6,7 +7,6 @@ import {
   type DesktopBridge,
   type Settings,
   type Reply,
-  type EnvironmentCheck,
 } from '../../../../packages/contracts/src/index';
 declare global {
   interface Window {
@@ -20,8 +20,12 @@ function unwrap<T>(reply: Reply<T>): T {
 export function App() {
   const snapshot = useQuery({
     queryKey: ['snapshot'],
+    refetchInterval: 5000,
     queryFn: async () => unwrap(await window.forge.snapshot()),
   });
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [taskDirty, setTaskDirty] = useState(false);
+  const [welcome, setWelcome] = useState(true);
   const [page, setPage] = useState<'projects' | 'settings'>('projects');
   const [draft, setDraft] = useState<Settings | null>(null);
   const [editVersion, setEditVersion] = useState<number | null>(null);
@@ -37,7 +41,7 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [checks, setChecks] = useState<EnvironmentCheck[] | null>(null);
+  const checks = snapshot.data?.environmentChecks ?? null;
   const request = useRef<{ signature: string; id: string } | null>(null);
   const requestId = (input: unknown) => {
     const signature = JSON.stringify(input);
@@ -53,20 +57,22 @@ export function App() {
   }, [snapshot.data]);
   useEffect(() => {
     const prevent = (event: BeforeUnloadEvent) => {
-      if (dirty || name || path || busy) {
+      if (dirty || taskDirty || name || path || busy) {
         event.preventDefault();
         event.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', prevent);
     return () => window.removeEventListener('beforeunload', prevent);
-  }, [dirty, name, path, busy]);
+  }, [dirty, taskDirty, name, path, busy]);
   const navigate = (next: typeof page) => {
-    if (busy || page === next) return;
-    if ((dirty || name || path) && !window.confirm('有未保存内容，是否放弃并离开？')) return;
+    if (busy || (page === next && !selectedProject)) return;
+    if ((dirty || taskDirty || name || path) && !window.confirm('有未保存内容，是否放弃并离开？')) return;
     discardDraft();
     setName('');
     setPath('');
+    setSelectedProject(null);
+    setTaskDirty(false);
     setPage(next);
     setMessage('');
     setError('');
@@ -92,7 +98,7 @@ export function App() {
         <p>检查本地数据库并启动 Core…</p>
       </main>
     );
-  if (snapshot.isError)
+  if (snapshot.isError && !snapshot.data)
     return (
       <main className="startup">
         <div className="brand-icon">F</div>
@@ -104,11 +110,10 @@ export function App() {
         <button onClick={() => void snapshot.refetch()}>重新连接</button>
       </main>
     );
-  const data = snapshot.data;
+  const data = snapshot.data!;
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setDraft((previous) => ({ ...(previous ?? values), [key]: value }));
     setEditVersion(version);
-    setChecks(null);
     setMessage('');
   };
   return (
@@ -141,6 +146,12 @@ export function App() {
         </div>
       </aside>
       <main className="content">
+        {snapshot.isError && (
+          <p role="alert" className="notice error">
+            Core 暂时不可用，当前草稿已保留。
+            <button onClick={() => void snapshot.refetch()}>重新连接 Core</button>
+          </p>
+        )}
         <header className="page-header">
           <div>
             <div className="eyebrow">{page === 'projects' ? 'WORKSPACE' : 'PREFERENCES'}</div>
@@ -161,7 +172,32 @@ export function App() {
             {error}
           </div>
         )}
-        {page === 'projects' ? (
+        {welcome && data.projects.length === 0 && (
+          <div className="notice">
+            <p>欢迎使用 Forge。可先检查工具环境，也可以直接管理本地任务。</p>
+            <button
+              onClick={() => {
+                setWelcome(false);
+                navigate('settings');
+              }}
+            >
+              检查环境
+            </button>
+            <button onClick={() => setWelcome(false)}>跳过，开始本地管理</button>
+          </div>
+        )}
+        {page === 'projects' && selectedProject && data.projects.find((p) => p.id === selectedProject) ? (
+          <>
+            <button onClick={() => navigate('projects')}>返回项目列表</button>
+            <Board
+              key={selectedProject}
+              project={data.projects.find((p) => p.id === selectedProject)!}
+              onDirty={setTaskDirty}
+              settingsVersion={data.settings.version}
+              refreshProjects={() => snapshot.refetch()}
+            />
+          </>
+        ) : page === 'projects' ? (
           <>
             <section className="panel">
               <div className="section-heading">
@@ -249,6 +285,16 @@ export function App() {
                     <article key={project.id} className="project-card">
                       <span className="project-icon">{project.name.slice(0, 1).toUpperCase()}</span>
                       <h3>{project.name}</h3>
+                      <button
+                        onClick={() => {
+                          if ((name || path) && !window.confirm('有未保存的导入内容，是否放弃？')) return;
+                          setName('');
+                          setPath('');
+                          setSelectedProject(project.id);
+                        }}
+                      >
+                        打开任务看板
+                      </button>
                       <p className="path">{project.repositoryPath}</p>
                       <span className="badge">本地项目 · 执行未配置</span>
                     </article>
@@ -258,7 +304,7 @@ export function App() {
             </section>
             <div className="scope-note">
               <strong>当前版本</strong>
-              <p>已支持项目导入、持久化设置和工具版本检测。任务看板、规划对话与自动执行将在后续阶段接入。</p>
+              <p>已支持本地任务看板、人工任务验收、任务组、依赖和设置。规划对话与自动执行尚未开放。</p>
             </div>
           </>
         ) : (
@@ -341,7 +387,10 @@ export function App() {
                     </div>
                   </label>
                 ))}
-                <p className="muted">检测只调用 --version，不运行模型、不登录账号、不修改仓库。</p>
+                <p className="muted">
+                  检测会读取工具版本，并通过 GitHub API / Codex App Server
+                  检查当前账号和模型列表；可能联网，不发送模型请求或修改仓库。
+                </p>
               </section>
               <div className="settings-actions">
                 <span className="muted">{dirty ? '有未保存的修改' : `已保存 · 版本 ${version}`}</span>
@@ -375,12 +424,24 @@ export function App() {
               </div>
             </form>
             <section className="panel">
+              <p>
+                登录修复：在终端运行 <code>gh auth login</code> 或 <code>codex login</code>，然后重新检测。
+              </p>
+              <button onClick={() => void navigator.clipboard.writeText('gh auth login')}>
+                复制 GitHub 登录命令
+              </button>
+              <button onClick={() => void navigator.clipboard.writeText('codex login')}>
+                复制 Codex 登录命令
+              </button>
               <div className="section-heading">
                 <h2>环境检查</h2>
                 <button
                   disabled={busy || dirty}
                   onClick={() =>
-                    void perform(async () => setChecks(unwrap(await window.forge.checkEnvironment())))
+                    void perform(async () => {
+                      unwrap(await window.forge.checkEnvironment());
+                      await snapshot.refetch();
+                    })
                   }
                 >
                   重新检测

@@ -1,3 +1,4 @@
+import { CodexRpc } from './codex-rpc';
 import { spawn } from 'node:child_process';
 import { access, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -108,15 +109,50 @@ export async function checkEnvironment(settings: Settings): Promise<EnvironmentC
       try {
         path = await resolveTool(tool, settings[`${tool}Path`]);
         const result = await runCommand(path, ['--version'], { timeoutMs: 5000, maxBytes: 8192 });
+        let status: EnvironmentCheck['status'] = result.code === 0 ? 'passed' : 'failed';
+        let detail =
+          result.code === 0 ? result.stdout.trim().split('\n')[0] : `版本检查退出码 ${result.code}`;
+        if (result.code === 0 && tool === 'gh') {
+          const account = await runCommand(path, ['api', 'user', '--jq', '.login'], {
+            timeoutMs: 5000,
+            maxBytes: 4096,
+          });
+          status = account.code === 0 ? 'passed' : 'unknown';
+          detail +=
+            account.code === 0
+              ? `；GitHub 身份：${account.stdout.trim()}。仓库权限在项目设置中检测。`
+              : '；身份未验证，请执行 gh auth login 后重新检测，或检查网络。';
+        }
+        if (result.code === 0 && tool === 'codex') {
+          const rpc = new CodexRpc(path, ['app-server'], toolEnvironment());
+          try {
+            await rpc.request(
+              'initialize',
+              { clientInfo: { name: 'forge_environment', version: '0.1.0' } },
+              3000,
+            );
+            rpc.notify('initialized');
+            const [account, models] = (await Promise.all([
+              rpc.request('account/read', {}, 3000),
+              rpc.request('model/list', {}, 3000),
+            ])) as [{ account: { type: string } | null }, { data: unknown[] }];
+            status = account.account ? 'warning' : 'failed';
+            detail += account.account
+              ? `；${account.account.type} 已登录，${models.data.length} 个模型可见。M0 隔离门禁未通过，自动执行关闭。`
+              : '；未登录，请执行 codex login 后重新检测。';
+          } catch {
+            status = 'unknown';
+            detail += '；协议或身份检测失败/超时，请检查版本、登录与网络。自动执行关闭。';
+          } finally {
+            await rpc.close();
+          }
+        }
         return {
           tool,
           path,
           checkedAt: new Date().toISOString(),
-          status: result.code === 0 ? 'passed' : 'failed',
-          detail:
-            result.code === 0
-              ? `${result.stdout.trim().split('\n')[0]}. 仅版本检查；账号和执行能力尚未验证。`
-              : `版本检查退出码 ${result.code}`,
+          status,
+          detail,
         } satisfies EnvironmentCheck;
       } catch (error) {
         return {

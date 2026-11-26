@@ -1,3 +1,4 @@
+import { taskCommandSchema } from '../../../../packages/contracts/src/tasks';
 import { app, BrowserWindow, ipcMain, dialog, type IpcMainInvokeEvent } from 'electron';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -95,6 +96,9 @@ else {
       void core.start().catch(() => undefined);
       for (const [channel, method] of Object.entries({
         snapshot: 'snapshot',
+        taskBoard: 'task.board',
+        checkProject: 'project.check',
+        taskDetail: 'task.detail',
         saveSettings: 'settings.save',
         importProject: 'project.import',
         checkEnvironment: 'environment.check',
@@ -133,6 +137,14 @@ else {
           }
         });
       }
+      ipcMain.handle('forge:mutateTask', async (event, input: unknown) => {
+        try {
+          trusted(event);
+          return await core.request(taskCommandSchema.parse(input));
+        } catch (error) {
+          return errorReply(error);
+        }
+      });
       for (const [channel, directory] of [
         ['chooseRepository', true],
         ['chooseExecutable', false],
