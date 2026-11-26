@@ -5,13 +5,22 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "esModuleInterop": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node"],
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["apps/server/src", "packages", "tests/unit", "tests/integration", "prisma.config.ts"]
+  "include": [
+    "apps/desktop/src",
+    "packages/contracts",
+    "packages/core",
+    "packages/local-db",
+    "packages/adapters",
+    "tests/desktop",
+    "electron.vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ]
 }

@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client"
+  output = "../generated"
+  moduleFormat = "esm"
+}
+datasource db {
+  provider = "sqlite"
+}
+model Project {
+  id String @id
+  name String
+  description String @default("")
+  repositoryPath String
+  gitCommonDir String @unique
+  version Int @default(1)
+  createdAt DateTime @default(now())
+}
+model Settings {
+  id String @id
+  version Int @default(1)
+  values Json
+}
+model Mutation {
+  requestId String @id
+  fingerprint String
+  result Json
+  createdAt DateTime @default(now())
+}
+model ActivityEvent {
+  seq Int @id @default(autoincrement())
+  eventId String @unique
+  entityId String
+  type String
+  requestId String @unique
+  timestamp DateTime @default(now())
+  payload Json
+}
+model Task {
+ id String @id
+ projectId String
+ number Int
+ kind String
+ parentId String?
+ title String
+ description String
+ acceptanceCriteria String
+ priority String
+ labels Json
+ status String
+ position Int
+ version Int @default(1)
+ requirementRevisionId String
+ archived Boolean @default(false)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([projectId,number])
+ @@unique([projectId,id])
+ @@index([projectId,status,position])
+}
+model TaskDependency {
+ projectId String
+ taskId String
+ dependsOnId String
+ @@id([taskId,dependsOnId])
+}
+model TaskRevision {
+ id String @id
+ taskId String
+ title String
+ description String
+ acceptanceCriteria String
+ dependencies Json
+ author String
+ createdAt DateTime @default(now())
+ @@index([taskId,createdAt])
+}
+model Diagnostic {
+ key String @id
+ configKey String
+ values Json
+}

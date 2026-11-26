@@ -1,12 +1,17 @@
 packages:
-  - apps/*
-  - packages/*
+  - apps/desktop
+  - packages/cli
 allowBuilds:
+  electron-winstaller: false
+  electron: true
+  better-sqlite3: true
   esbuild: true
-  prisma: true
+  '@swc/core': true
   '@prisma/engines': true
-  '@nestjs/core': false
-  '@scarf/scarf': false
+  prisma: true
   simple-git-hooks: true
+minimumReleaseAgeExclude:
+  - electron@45.5.0
+
 overrides:
-  vite: 7.1.7
+  '@prisma/adapter-better-sqlite3>better-sqlite3': 13.2.0

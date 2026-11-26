@@ -1,93 +1,51 @@
-# Forge Lane
+# Forge Desktop
 
-面向研发团队的 Jira 类 Board。React + Vite + NestJS + PostgreSQL + **Prisma**，描述编辑使用 **MDXEditor**，标准 Markdown 是唯一存储源。
+本地优先的工程任务工作台。新版正在按 [产品规格](docs/superpowers/specs/2026-11-25-forge-desktop-design.md) 实施，首版面向 macOS Apple Silicon。
 
-## 本地启动
+M1 本地任务基础已实现：CODE / MANUAL / GROUP、固定状态看板、搜索筛选与排序、Markdown 需求和验收标准、依赖、需求修订、活动、人工验收与归档，以及全局/项目设置和环境诊断。写入支持幂等与版本冲突，失败保留草稿。**Codex 自动执行、PR 与自动评审尚未开放**：M0 的读取隔离和 Git 沙箱写入探针未通过，详见 [M0 门禁](docs/adr/0002-m0-validation.md)。
 
-需要 Node.js 24+、pnpm 11.9、Docker。
+旧 Web/服务端代码保存在 `codex/legacy-web` 与 `legacy-web-2026-11-25`。新版不需要 Docker、PostgreSQL、旧账号或旧 `.env`；旧部署数据未被修改。
+
+## 开发
+
+需要 Node.js 24、仓库固定的 PNPM 11.9.0，以及 macOS 开发工具。
 
 ```sh
 pnpm install --frozen-lockfile
-cp .env.example .env
+pnpm setup:desktop
+pnpm db:generate
 pnpm dev
 ```
 
-`pnpm dev` 启动 PostgreSQL、生成 Prisma Client、应用迁移并启动前后端。打开 http://localhost:5173，可直接注册自己的工作区。数据库使用独立的 Compose volume 和 localhost:55432。
-
-可选演示数据（在另一个终端运行，密码至少 10 位）：
+`setup:desktop` 安装固定 Electron 运行时并检查原生模块。所有业务测试使用 Electron 自带 Node 运行，避免系统 Node 与 Electron ABI 来回切换。
 
 ```sh
-SEED_PASSWORD='your-local-demo-password' pnpm db:seed
-```
-
-演示邮箱 `demo@forge.local`；已有账户不会被重置。数据包括 Acme Studio、Mobile App、2 个 Epic、16 个事项、多个状态和两个 Sprint。
-
-## 已实现
-
-- 默认四列八状态的看板；状态与列映射分离；精确落区、空区、拖拽排序和失败回滚。
-- Epic / Story / Task / Bug / Subtask；详情深链；可搜索字段选择器、估点（区分 0 和未估点）、连续创建。
-- MDXEditor 的标题、列表、清单、代码、链接、Slash 命令、撤销重做；显式保存和 Cmd/Ctrl+Enter；会话草稿及版本冲突比较。
-- Backlog 独立排序，Sprint 创建、启动、完成、未完成事项迁移；子任务继承父事项的 Sprint。
-- 项目设置、工作流映射、成员角色、标签；列表、搜索与筛选；评论、活动与描述版本记录。
-- HttpOnly 会话、角色校验、项目隔离、写请求来源校验、幂等命令和乐观锁。
-
-先让团队成员注册，再由工作区管理员在项目设置里通过邮箱加入工作区并分配项目角色。支持切换工作区。
-
-按已确认范围，暂不实现分析图表、Swimlane、OAuth 登录、附件上传和 Agent 自动执行。
-
-## 质量检查
-
-```sh
-pnpm lint                 # Oxlint + TypeScript 类型感知规则
-pnpm format:check         # Oxfmt
-pnpm typecheck
 pnpm test
-pnpm build                # 生产 SPA + NestJS
-pnpm test:integration     # 真实 PostgreSQL；先 migrate 和 build
-pnpm exec playwright install chromium
-pnpm test:e2e             # 自动启动/复用开发服务器
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm build
+pnpm test:desktop
 ```
 
-Git pre-commit 自动检查 lint、格式和类型；GitHub Actions 执行完整检查及数据库/浏览器测试。测试使用独立命名的工作区与项目，不清空已有数据。浏览器产物在 `test-results/`，具体结果见 [验收记录](docs/verification.md)。
-
-## 容器运行
+## 本地打包
 
 ```sh
-docker compose --profile app up -d --build
+CSC_IDENTITY_AUTO_DISCOVERY=false pnpm package:dir
+FORGE_PACKAGED_EXE="$PWD/release/mac-arm64/Forge Desktop.app/Contents/MacOS/Forge Desktop" pnpm test:desktop
+node scripts/test-offline-migration.mjs
 ```
 
-访问 http://localhost:3001。App 在数据库健康后应用迁移，提供 API 和生产静态页面。开发服务器占用 3001 时先停止 `pnpm dev`。默认配置仅绑定本机，适合本地验收。
+产物为 `release/mac-arm64/Forge Desktop.app`。当前是开发验证包，未签名、未公证，不作为对外发布版本。安装包含 Electron Node、官方 Prisma CLI/schema engine、SQLite 驱动和迁移文件；运行时不下载依赖、不调用系统 Node。M0 暂用 unpacked resources 以验证完整依赖；发布体积优化和签名在后续交付阶段完成。
 
-正式部署时设置独立数据库密码、实际 `APP_URL`，在 HTTPS 反向代理后设置 `COOKIE_SECURE=true`，并自行配置数据库备份和保留策略。应用不自动创建演示账号。认证使用随机不透明会话 token（数据库仅保存 SHA-256 摘要），不依赖伪设的 JWT secret。
+## 数据和工具
 
-GitHub Release 的自动部署配置见 [发布部署](docs/deployment.md)。
+- 默认数据目录：`~/Library/Application Support/Forge Desktop/desktop-v1`。
+- SQLite 仅由 Core 访问；迁移先检查历史，升级前通过 SQLite backup API 备份，失败进入维护模式。不会自动 reset 或清库。
+- 设置中可配置 git/gh/codex 路径。手动输入新路径需要原生确认；文件选择器选中的路径属于显式授权。环境检测读取工具版本、Codex 账号/模型列表和 gh 当前身份；项目设置可检测 remote、默认分支和仓库权限。检查可能联网，不调用模型。脱敏结果按配置版本保存，改变配置后失效；账号/模型可见不代表执行沙箱通过。
+- 环境探针不调用模型、不执行项目脚本、不推送、不创建 PR，也不读取仓库 `.env`。
+- `--forge-data-dir=/absolute/path` 用于独立开发/测试配置。CLI socket 位于按规范化数据目录哈希生成的 owner-only `/tmp/forge-<uid>-<hash>/core.sock`，避免 macOS socket 路径长度限制。
+- `pnpm forge health` 仅返回 Core 就绪状态。带项目内容的查询以及规划写入，要等 scoped capability 实现后才开放。
+- 无未保存内容时，macOS 关闭最后一个窗口会保留 Core；明确退出会先确认未保存内容，再停止受管进程。
 
-## 数据与 Agent 接入边界
-
-Schema 在 `packages/db/prisma/schema.prisma`，迁移在其 `migrations/` 子目录。Issue 当前状态与 Activity 在同一事务写入；描述和评论保留不可变修订；Activity 保留 Actor 名称快照、来源、请求标识和 schemaVersion。
-
-Board / Backlog 分别使用 `Decimal(65,30)` 顺序；API 只接收相邻事项 ID，由服务端定位并局部归一化。Issue / Sprint 更新需要 `version`；冲突返回 409；创建、移动与生命周期命令支持 `Idempotency-Key`，重复请求不会重复创建或追加历史。当前以工作区级事务锁保证跨事项层级和 Sprint 决策一致性，适用于小团队；高写入吞吐场景需进一步拆分锁粒度。
-
-API 文档：http://localhost:3001/api/docs，JSON：http://localhost:3001/api/docs-json。服务层统一接收由认证生成的 `ActorContext`；已支持限定项目和读写范围的 CLI 令牌，以及任务领取、续期和执行结果记录。Agent 通过 API 操作，不应直接写数据库或信任请求体的 actorId。当前没有 MCP 服务或服务端自动开发功能。
-
-## GitHub 开发关联
-
-支持 GitHub App 仓库绑定、Webhook 同步 PR/Commit、事项开发活动与可配置状态自动化。首次导入不改变事项状态，自动化默认关闭；没有 GitHub API 定时轮询。配置和限制见 [GitHub 接入说明](docs/github-integration.md)。
-
-## 本地 CLI / Codex
-
-`pnpm forge --help` 查看全部命令。支持事项读写、描述与评论、历史与开发关联、任务领取及执行结果回写。登录后即可让本地 Codex 通过 CLI 获取任务，开发仍在本机进行。安装、命令和 skill 模板见 [CLI 使用说明](packages/cli/README.md)。
-
-## @ 提及与通知
-
-描述（含创建）和评论支持 @ 选择项目成员。保存后通知本次新提及的人，自己、重复提及和代码示例不产生通知。站内通知保留未读状态，邮件通过 SMTP 异步投递；飞书等渠道仅预留接口。部署配置与投递边界见 [通知说明](docs/notifications.md)。
-
-## Sprint 历史与成员估点
-
-看板和 Backlog 的当前 Sprint 下可展开“成员 Story Points”，查看每人的总点数、已完成点数、剩余点数、事项数及未估点事项；未分配单列，按 Story / Task / Bug 统计，子任务不重复计点，统计不受看板筛选影响。
-
-Backlog 右上角“历史 Sprint”可查看已完成迭代。新完成的 Sprint 会在未完成事项迁出前保存不可变快照，后续修改事项不会改写历史点数。旧 Sprint 没有快照时明确标注数据不完整，仅展示目前仍关联的事项及当前字段。
-
-## 代码组织
-
-前后端职责、模块依赖和样式维护约定见 [代码组织与模块边界](docs/code-organization.md)。
+具体版本见 [ADR 0001](docs/adr/0001-desktop-runtime.md)，当前门禁见 [ADR 0002](docs/adr/0002-m0-validation.md)，本地任务验收见 [M1 验收记录](docs/adr/0003-m1-acceptance.md)。后续依次推进 M2 单任务执行到 PR、M3 Planner、M4 受控交付。

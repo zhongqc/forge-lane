@@ -1,0 +1,20 @@
+appId: dev.forge.desktop
+productName: Forge Desktop
+asar: false
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+  - packages/local-db/prisma/**
+  - packages/local-db/prisma.config.ts
+  - packages/cli/src/forge.mjs
+  - packages/adapters/src/socket-path.mjs
+  - '!**/.env*'
+  - '!**/*.map'
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dir
+      arch: arm64
+npmRebuild: true
